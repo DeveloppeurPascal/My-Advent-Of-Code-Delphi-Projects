@@ -1,6 +1,6 @@
 unit Unit1;
 
-// My solution for https://adventofcode.com/2020/day/4
+// My solution for day XXX - https://adventofcode.com/2020/day/XXX
 interface
 
 uses
@@ -16,6 +16,8 @@ type
     Button2: TButton;
     Edit1: TEdit;
     procedure FormCreate(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Déclarations privées }
   public
@@ -28,6 +30,28 @@ var
 implementation
 
 {$R *.dfm}
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  NbResult: integer;
+begin
+  NbResult := 0;
+  // todo : à completer
+  Edit1.Text := NbResult.Tostring;
+  Edit1.SelectAll;
+  Edit1.CopyToClipboard;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  NbResult: integer;
+begin
+  NbResult := 0;
+  // todo : à completer
+  Edit1.Text := NbResult.Tostring;
+  Edit1.SelectAll;
+  Edit1.CopyToClipboard;
+end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin

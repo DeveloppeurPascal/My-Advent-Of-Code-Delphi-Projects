@@ -40,6 +40,7 @@ object Form1: TForm1
       Align = alLeft
       Caption = 'Part1'
       TabOrder = 0
+      OnClick = Button1Click
     end
     object Button2: TButton
       Left = 76
@@ -49,6 +50,7 @@ object Form1: TForm1
       Align = alLeft
       Caption = 'Part2'
       TabOrder = 1
+      OnClick = Button2Click
     end
     object Edit1: TEdit
       Left = 151
