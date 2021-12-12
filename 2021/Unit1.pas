@@ -20,12 +20,15 @@ type
     procedure FermeFichier;
     procedure OuvreFichier(NomFichier: string);
     procedure AfficheResultat(Jour, Exercice: byte; Reponse: int64);
+    function BinToInt64(Bin: string): int64;
   public
     { Déclarations publiques }
     procedure Jour01_1;
     procedure Jour01_2;
     procedure Jour02_1;
     procedure Jour02_2;
+    procedure Jour03_1;
+    procedure Jour03_2;
   end;
 
 var
@@ -39,6 +42,18 @@ procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: int64);
 begin
   Memo1.Lines.Add('Jour ' + Jour.ToString + ' Exercice ' + Exercice.ToString +
     ' Reponse ' + Reponse.ToString);
+end;
+
+function TForm1.BinToInt64(Bin: string): int64;
+var
+  i: integer;
+begin
+  result := 0;
+  for i := 0 to Bin.Length - 1 do
+    if (Bin.Chars[i] = '0') then
+      result := result * 2
+    else
+      result := result * 2 + 1;
 end;
 
 procedure TForm1.FermeFichier;
@@ -62,6 +77,8 @@ begin
   Jour01_2;
   Jour02_1;
   Jour02_2;
+  Jour03_1;
+  Jour03_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -70,6 +87,7 @@ begin
     OuvreFichier(NomFichier);
   if (not FinDeFichier) then
     readln(Fichier, result);
+  result := result.Trim;
 end;
 
 procedure TForm1.Jour01_1;
@@ -197,8 +215,8 @@ begin
   repeat
     Ligne := getLigne('..\..\input-02.txt');
     try
-      Tab := Ligne.trim.Split([' ']);
-      if (length(Tab) = 2) then
+      Tab := Ligne.Trim.Split([' ']);
+      if (Length(Tab) = 2) then
       begin
         Valeur_Ligne := Tab[1].ToInteger;
         Operation := Tab[0].ToLower;
@@ -233,8 +251,8 @@ begin
   repeat
     Ligne := getLigne('..\..\input-02.txt');
     try
-      Tab := Ligne.trim.Split([' ']);
-      if (length(Tab) = 2) then
+      Tab := Ligne.Trim.Split([' ']);
+      if (Length(Tab) = 2) then
       begin
         Valeur_Ligne := Tab[1].ToInteger;
         Operation := Tab[0].ToLower;
@@ -254,6 +272,117 @@ begin
   until FinDeFichier;
   FermeFichier;
   AfficheResultat(2, 2, Profondeur * DistanceParcourrue);
+end;
+
+procedure TForm1.Jour03_1;
+type
+  TTabBin = array [0 .. 1] of int64;
+var
+  Ligne: string;
+  GammaRate: integer;
+  // composé par les bits les plus présents dans chaque colonne du fichier
+  EpsilonRate: integer;
+  // composé par les bits les moins présents dans chaque colonne du fichier
+  Tab: array of TTabBin; // Nombre d'occurrence de 0/1 par colonne
+  PremiereLigne: boolean;
+  i: integer;
+begin
+  PremiereLigne := true;
+  repeat
+    Ligne := getLigne('..\..\input-03.txt');
+    if (Ligne.Length > 0) then
+      try
+        if PremiereLigne then
+        begin
+          setlength(Tab, Ligne.Length);
+          for i := 0 to Length(Tab) - 1 do
+          begin
+            Tab[i][0] := 0;
+            Tab[i][1] := 0;
+          end;
+          PremiereLigne := false;
+        end;
+        for i := 0 to Length(Tab) - 1 do
+          if (Ligne.Chars[i] = '0') then
+            inc(Tab[i][0])
+          else
+            inc(Tab[i][1]);
+      except
+
+      end;
+  until FinDeFichier;
+  GammaRate := 0;
+  EpsilonRate := 0;
+  for i := 0 to Length(Tab) - 1 do
+    if (Tab[i][1] > Tab[i][0]) then
+    begin
+      GammaRate := GammaRate * 2 + 1;
+      EpsilonRate := EpsilonRate * 2 + 0;
+    end
+    else
+    begin
+      GammaRate := GammaRate * 2 + 0;
+      EpsilonRate := EpsilonRate * 2 + 1;
+    end;
+  FermeFichier;
+  AfficheResultat(3, 1, GammaRate * EpsilonRate);
+end;
+
+procedure TForm1.Jour03_2;
+var
+  Ligne: string;
+  NumColonne, NbColonnes: byte;
+  Nb0_Oxy, Nb1_Oxy: int64;
+  Oxygene_Bin: string;
+  Nb0_CO2, Nb1_CO2: int64;
+  CO2_Bin: string;
+  PremiereLigne: boolean;
+begin
+  PremiereLigne := true;
+  NbColonnes := 0;
+  NumColonne := 0;
+  Oxygene_Bin := '';
+  CO2_Bin := '';
+  repeat
+    Nb0_Oxy := 0;
+    Nb1_Oxy := 0;
+    Nb0_CO2 := 0;
+    Nb1_CO2 := 0;
+    repeat
+      Ligne := getLigne('..\..\input-03.txt');
+      if (Ligne.Length > 0) then
+        try
+          if PremiereLigne then
+          begin
+            PremiereLigne := false;
+            NbColonnes := Ligne.Length;
+          end;
+          if (Oxygene_Bin.IsEmpty or (Ligne.StartsWith(Oxygene_Bin))) then
+            if (Ligne.Chars[NumColonne] = '0') then
+              inc(Nb0_Oxy)
+            else
+              inc(Nb1_Oxy);
+          if (CO2_Bin.IsEmpty or (Ligne.StartsWith(CO2_Bin))) then
+            if (Ligne.Chars[NumColonne] = '0') then
+              inc(Nb0_CO2)
+            else
+              inc(Nb1_CO2);
+        except
+
+        end;
+    until FinDeFichier;
+    FermeFichier;
+    if (Nb1_Oxy >= Nb0_Oxy) then
+      Oxygene_Bin := Oxygene_Bin + '1'
+    else
+      Oxygene_Bin := Oxygene_Bin + '0';
+    if ((Nb0_CO2 <= Nb1_CO2) and (Nb0_CO2 > 0)) or (Nb1_CO2 = 0) then
+      CO2_Bin := CO2_Bin + '0'
+    else
+      CO2_Bin := CO2_Bin + '1';
+    inc(NumColonne);
+  until (NumColonne >= NbColonnes);
+  AfficheResultat(3, 2, BinToInt64(Oxygene_Bin) * BinToInt64(CO2_Bin));
 end;
 
 procedure TForm1.OuvreFichier(NomFichier: string);
