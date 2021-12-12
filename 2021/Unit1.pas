@@ -24,6 +24,8 @@ type
     { Déclarations publiques }
     procedure Jour01_1;
     procedure Jour01_2;
+    procedure Jour02_1;
+    procedure Jour02_2;
   end;
 
 var
@@ -58,6 +60,8 @@ begin
   Memo1.Lines.Clear;
   Jour01_1;
   Jour01_2;
+  Jour02_1;
+  Jour02_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -177,6 +181,79 @@ begin
   until FinDeFichier;
   FermeFichier;
   AfficheResultat(1, 1, Nb_Increments);
+end;
+
+procedure TForm1.Jour02_1;
+var
+  Ligne: string;
+  Valeur_Ligne: word;
+  Tab: tarray<string>;
+  Operation: string;
+  Profondeur: int64;
+  DistanceParcourrue: int64;
+begin
+  Profondeur := 0;
+  DistanceParcourrue := 0;
+  repeat
+    Ligne := getLigne('..\..\input-02.txt');
+    try
+      Tab := Ligne.trim.Split([' ']);
+      if (length(Tab) = 2) then
+      begin
+        Valeur_Ligne := Tab[1].ToInteger;
+        Operation := Tab[0].ToLower;
+        if (Operation = 'up') then
+          dec(Profondeur, Valeur_Ligne)
+        else if (Operation = 'down') then
+          inc(Profondeur, Valeur_Ligne)
+        else if (Operation = 'forward') then
+          inc(DistanceParcourrue, Valeur_Ligne);
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+  AfficheResultat(2, 1, Profondeur * DistanceParcourrue);
+end;
+
+procedure TForm1.Jour02_2;
+var
+  Ligne: string;
+  Valeur_Ligne: word;
+  Tab: tarray<string>;
+  Operation: string;
+  Profondeur: int64;
+  Objectif: int64;
+  DistanceParcourrue: int64;
+begin
+  Profondeur := 0;
+  Objectif := 0;
+  DistanceParcourrue := 0;
+  repeat
+    Ligne := getLigne('..\..\input-02.txt');
+    try
+      Tab := Ligne.trim.Split([' ']);
+      if (length(Tab) = 2) then
+      begin
+        Valeur_Ligne := Tab[1].ToInteger;
+        Operation := Tab[0].ToLower;
+        if (Operation = 'up') then
+          dec(Objectif, Valeur_Ligne)
+        else if (Operation = 'down') then
+          inc(Objectif, Valeur_Ligne)
+        else if (Operation = 'forward') then
+        begin
+          inc(DistanceParcourrue, Valeur_Ligne);
+          inc(Profondeur, Valeur_Ligne * Objectif);
+        end;
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+  AfficheResultat(2, 2, Profondeur * DistanceParcourrue);
 end;
 
 procedure TForm1.OuvreFichier(NomFichier: string);
