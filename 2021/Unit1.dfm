@@ -22,9 +22,5 @@ object Form1: TForm1
     Lines.Strings = (
       'Memo1')
     TabOrder = 0
-    ExplicitLeft = 232
-    ExplicitTop = 200
-    ExplicitWidth = 185
-    ExplicitHeight = 89
   end
 end

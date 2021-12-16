@@ -29,6 +29,8 @@ type
     procedure Jour02_2;
     procedure Jour03_1;
     procedure Jour03_2;
+    procedure Jour04_1;
+    procedure Jour04_2;
   end;
 
 var
@@ -37,6 +39,9 @@ var
 implementation
 
 {$R *.dfm}
+
+Uses
+  System.Generics.Collections;
 
 procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: int64);
 begin
@@ -73,12 +78,18 @@ end;
 procedure TForm1.FormShow(Sender: TObject);
 begin
   Memo1.Lines.Clear;
+  // https://adventofcode.com/2021/day/1
   Jour01_1;
   Jour01_2;
+  // https://adventofcode.com/2021/day/2
   Jour02_1;
   Jour02_2;
+  // https://adventofcode.com/2021/day/3
   Jour03_1;
   Jour03_2;
+  // https://adventofcode.com/2021/day/4
+  Jour04_1;
+  Jour04_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -385,12 +396,305 @@ begin
   AfficheResultat(3, 2, BinToInt64(Oxygene_Bin) * BinToInt64(CO2_Bin));
 end;
 
+// Types utilisés pour le Jour 4 : Bingo
+type
+  TJ4_Case = class
+  public
+    FNumero: integer;
+    FTire: boolean;
+    constructor Create(ANumero: integer);
+  end;
+
+  TJ4_Grille = array [1 .. 5, 1 .. 5] of TJ4_Case;
+
+  TJ4_Carte = class
+  public
+    FGrille: TJ4_Grille;
+    FGagnante: boolean;
+    procedure Numero(ACol, ALig, ANumero: integer); overload;
+    function Numero(ACol, ALig: integer): integer; overload;
+    function isLigneFinie(ALig: integer): boolean;
+    function isColonneFinie(ACol: integer): boolean;
+    function isGrilleGagnanteAvecNumero(ANumero: integer): boolean;
+    function TotalNumerosNonTires: integer;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TJ4_ListeDeCartes = class(TObjectList<TJ4_Carte>)
+  public
+
+  end;
+
+procedure TForm1.Jour04_1;
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  sListeNumeros: string;
+  numCol, NumLig, Numero: integer;
+  Board: TJ4_Carte;
+  ListeCartes: TJ4_ListeDeCartes;
+  NumeroTire: integer;
+  i: integer;
+begin
+  // Lecture des données et remplissage
+  ListeCartes := TJ4_ListeDeCartes.Create;
+  try
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-04.txt');
+      try
+        if PremiereLigneTraitee then
+        begin // charge les cartes de jeu
+          if Ligne.IsEmpty then
+          begin
+            NumLig := 0;
+            Board := TJ4_Carte.Create;
+            ListeCartes.Add(Board);
+          end
+          else
+          begin // Charge première ligne = numéros tirés
+            Ligne := Ligne.Replace('  ', ' ');
+            var
+            Tab := Ligne.Split([' ']);
+            if (Length(Tab) <> 5) then
+              raise exception.Create('erreur : ' + Ligne);
+            for numCol := 0 to 4 do
+              Board.Numero(numCol + 1, NumLig + 1, Tab[numCol].Trim.ToInteger);
+            inc(NumLig);
+          end;
+        end
+        else
+        begin // première ligne = numeros tirés
+          PremiereLigneTraitee := true;
+          sListeNumeros := Ligne;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    // Tirage des numéros
+    var
+    Tab := sListeNumeros.Split([',']);
+    var
+    FinTirage := false;
+    for i := 0 to Length(Tab) - 1 do
+    begin
+      NumeroTire := Tab[i].Trim.ToInteger;
+      if (ListeCartes.Count > 0) then
+        for Board in ListeCartes do
+          if Board.isGrilleGagnanteAvecNumero(NumeroTire) then
+          begin
+            AfficheResultat(4, 1, NumeroTire * Board.TotalNumerosNonTires);
+            FinTirage := true;
+            break;
+          end;
+      if FinTirage then
+        break;
+    end;
+  finally
+    ListeCartes.Free;
+  end;
+end;
+
+procedure TForm1.Jour04_2;
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  sListeNumeros: string;
+  numCol, NumLig, Numero: integer;
+  Board, DerniereGrilleGagnante: TJ4_Carte;
+  ListeCartes: TJ4_ListeDeCartes;
+  NumeroTire, DernierNumeroTire: integer;
+  i: integer;
+begin
+  // Lecture des données et remplissage
+  ListeCartes := TJ4_ListeDeCartes.Create;
+  try
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-04.txt');
+      try
+        if PremiereLigneTraitee then
+        begin // charge les cartes de jeu
+          if Ligne.IsEmpty then
+          begin
+            NumLig := 0;
+            Board := TJ4_Carte.Create;
+            ListeCartes.Add(Board);
+          end
+          else
+          begin // Charge première ligne = numéros tirés
+            Ligne := Ligne.Replace('  ', ' ');
+            var
+            Tab := Ligne.Split([' ']);
+            if (Length(Tab) <> 5) then
+              raise exception.Create('erreur : ' + Ligne);
+            for numCol := 0 to 4 do
+              Board.Numero(numCol + 1, NumLig + 1, Tab[numCol].Trim.ToInteger);
+            inc(NumLig);
+          end;
+        end
+        else
+        begin // première ligne = numeros tirés
+          PremiereLigneTraitee := true;
+          sListeNumeros := Ligne;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    // Tirage des numéros
+    DerniereGrilleGagnante := nil;
+    var
+    Tab := sListeNumeros.Split([',']);
+    var
+    FinTirage := false;
+    for i := 0 to Length(Tab) - 1 do
+    begin
+      NumeroTire := Tab[i].Trim.ToInteger;
+      if (ListeCartes.Count > 0) then
+        for Board in ListeCartes do
+          if (not Board.FGagnante) and Board.isGrilleGagnanteAvecNumero
+            (NumeroTire) then
+          begin
+            DernierNumeroTire := NumeroTire;
+            DerniereGrilleGagnante := Board;
+          end;
+    end;
+    if DerniereGrilleGagnante <> nil then
+      AfficheResultat(4, 2, DernierNumeroTire *
+        DerniereGrilleGagnante.TotalNumerosNonTires);
+  finally
+    ListeCartes.Free;
+  end;
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
   assignfile(Fichier, NomFichier);
   reset(Fichier);
   FichierOuvert := NomFichier;
+end;
+
+{ TJ4_Carte }
+
+constructor TJ4_Carte.Create;
+var
+  col, lig: integer;
+begin
+  for col := 1 to 5 do
+    for lig := 1 to 5 do
+      FGrille[col, lig] := nil;
+  FGagnante := false;
+end;
+
+procedure TJ4_Carte.Numero(ACol, ALig, ANumero: integer);
+begin
+  if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) then
+  begin
+    if (FGrille[ACol, ALig] = nil) then
+      FGrille[ACol, ALig] := TJ4_Case.Create(ANumero)
+    else
+    begin
+      FGrille[ACol, ALig].FNumero := ANumero;
+      FGrille[ACol, ALig].FTire := false;
+    end;
+  end
+  else
+    raise exception.Create('Pas dans la grille');
+end;
+
+destructor TJ4_Carte.Destroy;
+var
+  col, lig: integer;
+begin
+  for col := 1 to 5 do
+    for lig := 1 to 5 do
+      if (FGrille[col, lig] <> nil) then
+        FGrille[col, lig].Free;
+  inherited;
+end;
+
+function TJ4_Carte.isColonneFinie(ACol: integer): boolean;
+var
+  lig: integer;
+begin
+  result := false;
+  if (ACol in [1 .. 5]) then
+  begin
+    result := true;
+    for lig := 1 to 5 do
+      result := result and (FGrille[ACol, lig] <> nil) and
+        FGrille[ACol, lig].FTire;
+  end;
+end;
+
+function TJ4_Carte.isGrilleGagnanteAvecNumero(ANumero: integer): boolean;
+var
+  col, lig: integer;
+begin
+  result := false;
+  for col := 1 to 5 do
+    for lig := 1 to 5 do
+      if (FGrille[col, lig] <> nil) and (FGrille[col, lig].FNumero = ANumero)
+      then
+      begin
+        FGrille[col, lig].FTire := true;
+        if isLigneFinie(lig) or isColonneFinie(col) then
+        begin
+          result := true;
+          FGagnante := true;
+          exit;
+        end;
+      end;
+end;
+
+function TJ4_Carte.isLigneFinie(ALig: integer): boolean;
+var
+  col: integer;
+begin
+  result := false;
+  if (ALig in [1 .. 5]) then
+  begin
+    result := true;
+    for col := 1 to 5 do
+      result := result and (FGrille[col, ALig] <> nil) and
+        FGrille[col, ALig].FTire;
+  end;
+end;
+
+function TJ4_Carte.Numero(ACol, ALig: integer): integer;
+begin
+  if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) and (FGrille[ACol, ALig] <> nil)
+  then
+    result := FGrille[ACol, ALig].FNumero
+  else
+    raise exception.Create('Pas dans la grille ou pas de case');
+end;
+
+function TJ4_Carte.TotalNumerosNonTires: integer;
+var
+  col, lig: integer;
+begin
+  result := 0;
+  for col := 1 to 5 do
+    for lig := 1 to 5 do
+      if (FGrille[col, lig] <> nil) and (not FGrille[col, lig].FTire) then
+        result := result + FGrille[col, lig].FNumero;
+end;
+
+{ TJ4_Case }
+
+constructor TJ4_Case.Create(ANumero: integer);
+begin
+  FNumero := ANumero;
+  FTire := false;
 end;
 
 end.
