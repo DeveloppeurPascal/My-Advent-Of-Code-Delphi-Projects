@@ -10,7 +10,6 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -59,7 +58,7 @@ object Form1: TForm1
       Height = 39
       Align = alClient
       TabOrder = 2
-      Text = 'Edit1'
+      Text = 'fgnjghkhj;h'
       ExplicitHeight = 21
     end
   end
