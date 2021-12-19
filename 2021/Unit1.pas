@@ -19,7 +19,7 @@ type
     function FinDeFichier: boolean;
     procedure FermeFichier;
     procedure OuvreFichier(NomFichier: string);
-    procedure AfficheResultat(Jour, Exercice: byte; Reponse: int64);
+    procedure AfficheResultat(Jour, Exercice: byte; Reponse: uint64);
     function BinToInt64(Bin: string): int64;
   public
     { Déclarations publiques }
@@ -33,6 +33,8 @@ type
     procedure Jour04_2;
     procedure Jour05_1;
     procedure Jour05_2;
+    procedure Jour06_1;
+    procedure Jour06_2;
     procedure TemplateJour;
   end;
 
@@ -46,7 +48,7 @@ implementation
 Uses
   System.Generics.Collections, System.RegularExpressions;
 
-procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: int64);
+procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: uint64);
 begin
   Memo1.Lines.Add('Jour ' + Jour.ToString + ' Exercice ' + Exercice.ToString +
     ' Reponse ' + Reponse.ToString);
@@ -96,6 +98,9 @@ begin
   // https://adventofcode.com/2021/day/5
   Jour05_1;
   Jour05_2;
+  // https://adventofcode.com/2021/day/6
+  Jour06_1;
+  Jour06_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -597,7 +602,7 @@ Const
   CExercice = 1; // Numéro exercice
 var
   Ligne: string;
-  Reponse: integer;
+  Reponse: uint64;
   Map: TJ5_X;
   RegMatch: TMatchCollection;
   x1, y1, x2, y2: integer;
@@ -674,7 +679,7 @@ Const
   CExercice = 2; // Numéro exercice
 var
   Ligne: string;
-  Reponse: integer;
+  Reponse: uint64;
   Map: TJ5_X;
   RegMatch: TMatchCollection;
   x1, y1, x2, y2: integer;
@@ -752,15 +757,15 @@ begin
     until FinDeFichier;
     FermeFichier;
     // Dump sur jeu de test
-//    var
-//      s: string := '';
-//    for y := 0 to 9 do
-//    begin
-//      s := '';
-//      for x := 0 to 9 do
-//        s := s + Map.getValeur(x, y).ToString + ' ';
-//      Memo1.Lines.Add(s);
-//    end;
+    // var
+    // s: string := '';
+    // for y := 0 to 9 do
+    // begin
+    // s := '';
+    // for x := 0 to 9 do
+    // s := s + Map.getValeur(x, y).ToString + ' ';
+    // Memo1.Lines.Add(s);
+    // end;
     Reponse := 0;
     for x in Map.keys do
       for y in Map.items[x].keys do
@@ -769,6 +774,119 @@ begin
     AfficheResultat(CJour, CExercice, Reponse);
   finally
     Map.Free;
+  end;
+end;
+
+procedure TForm1.Jour06_1;
+Const
+  CNumeroFichier = '06'; // 2 chiffres, en alpha
+  CJour = 6; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  Reponse: uint64;
+  poissons: tlist<integer>;
+  Jour: integer;
+  nb: integer;
+  i: integer;
+begin
+  poissons := tlist<integer>.Create;
+  try
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if (not PremiereLigneTraitee) and (not Ligne.IsEmpty) then
+        begin
+          PremiereLigneTraitee := true;
+          var
+          Tab := Ligne.Split([',']);
+          for i := 0 to Length(Tab) - 1 do
+            poissons.Add(Tab[i].ToInteger);
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    // var nouveau:integer:=0;
+    for Jour := 1 to 80 do
+    begin
+      nb := poissons.Count;
+      for i := 0 to nb - 1 do
+      begin
+        if poissons[i] = 0 then
+        begin
+          poissons.Add(8);
+          // inc(nouveau);
+          poissons[i] := 6;
+        end
+        else
+          poissons[i] := poissons[i] - 1;
+      end;
+    end;
+
+    Reponse := poissons.Count;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    poissons.Free;
+  end;
+end;
+
+procedure TForm1.Jour06_2;
+Const
+  CNumeroFichier = '06'; // 2 chiffres, en alpha
+  CJour = 6; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  Reponse: uint64;
+  NbPoissonsParJourDeGestation: TDictionary<byte, uint64>;
+  nb: uint64;
+begin
+  NbPoissonsParJourDeGestation := TDictionary<byte, uint64>.Create;
+  try
+    for var i := 0 to 8 do
+      NbPoissonsParJourDeGestation.Add(i, 0);
+
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if (not PremiereLigneTraitee) and (not Ligne.IsEmpty) then
+        begin
+          PremiereLigneTraitee := true;
+          var
+          Tab := Ligne.Split([',']);
+          for var i := 0 to Length(Tab) - 1 do
+            NbPoissonsParJourDeGestation[Tab[i].ToInteger] :=
+              NbPoissonsParJourDeGestation[Tab[i].ToInteger] + 1;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    for var Jour := 1 to 256 do
+    begin
+      nb := NbPoissonsParJourDeGestation[0];
+      for var i := 0 to 7 do
+        NbPoissonsParJourDeGestation[i] := NbPoissonsParJourDeGestation[i + 1];
+      NbPoissonsParJourDeGestation[8] := nb;
+      NbPoissonsParJourDeGestation[6] := NbPoissonsParJourDeGestation[6] + nb;
+    end;
+
+    Reponse := 0;
+    for var i := 0 to 8 do
+      Reponse := Reponse + NbPoissonsParJourDeGestation[i];
+
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    NbPoissonsParJourDeGestation.Free;
   end;
 end;
 
@@ -788,7 +906,7 @@ Const
 var
   PremiereLigneTraitee: boolean;
   Ligne: string;
-  Reponse: integer;
+  Reponse: uint64;
 begin
   PremiereLigneTraitee := false;
   repeat
