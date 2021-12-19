@@ -31,6 +31,9 @@ type
     procedure Jour03_2;
     procedure Jour04_1;
     procedure Jour04_2;
+    procedure Jour05_1;
+    procedure Jour05_2;
+    procedure TemplateJour;
   end;
 
 var
@@ -41,7 +44,7 @@ implementation
 {$R *.dfm}
 
 Uses
-  System.Generics.Collections;
+  System.Generics.Collections, System.RegularExpressions;
 
 procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: int64);
 begin
@@ -90,6 +93,9 @@ begin
   // https://adventofcode.com/2021/day/4
   Jour04_1;
   Jour04_2;
+  // https://adventofcode.com/2021/day/5
+  Jour05_1;
+  Jour05_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -574,12 +580,233 @@ begin
   end;
 end;
 
+// Types utilisés pour le Jour 5
+type
+  TJ5_Y = TDictionary<integer, integer>; // Y en clé, nb en valeur
+
+  TJ5_X = class(TObjectDictionary<integer, TJ5_Y>) // X en clé, (Y,nb) en valeur
+  public
+    procedure incremente(x, y: integer);
+    function getValeur(x, y: integer): integer;
+  end;
+
+procedure TForm1.Jour05_1;
+Const
+  CNumeroFichier = '05'; // 2 chiffres, en alpha
+  CJour = 5; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  Ligne: string;
+  Reponse: integer;
+  Map: TJ5_X;
+  RegMatch: TMatchCollection;
+  x1, y1, x2, y2: integer;
+  x, y: integer;
+begin
+  Map := TJ5_X.Create;
+  try
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin // /([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)/gm
+          RegMatch := tregex.matches(Ligne,
+            '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$');
+          if (RegMatch.Count = 1) and (RegMatch[0].groups.Count = 5) then
+          begin
+            x1 := RegMatch[0].groups[1].Value.ToInteger;
+            y1 := RegMatch[0].groups[2].Value.ToInteger;
+            x2 := RegMatch[0].groups[3].Value.ToInteger;
+            y2 := RegMatch[0].groups[4].Value.ToInteger;
+            if (x1 = x2) or (y1 = y2) then
+            begin
+              if (x1 < x2) then
+              begin
+                for x := x1 to x2 do
+                  if (y1 < y2) then
+                    for y := y1 to y2 do
+                      Map.incremente(x, y)
+                  else
+                    for y := y1 downto y2 do
+                      Map.incremente(x, y);
+              end
+              else
+              begin
+                for x := x1 downto x2 do
+                  if (y1 < y2) then
+                    for y := y1 to y2 do
+                      Map.incremente(x, y)
+                  else
+                    for y := y1 downto y2 do
+                      Map.incremente(x, y);
+              end;
+            end;
+          end;
+          // x1 := tregex.Replace(Ligne,
+          // '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$', '$1').ToInteger;
+          // y1 := tregex.Replace(Ligne,
+          // '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$', '$2').ToInteger;
+          // x2 := tregex.Replace(Ligne,
+          // '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$', '$3').ToInteger;
+          // y2 := tregex.Replace(Ligne,
+          // '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$', '$4').ToInteger;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+    Reponse := 0;
+    for x in Map.keys do
+      for y in Map.items[x].keys do
+        if (Map.getValeur(x, y) > 1) then
+          Reponse := Reponse + 1;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    Map.Free;
+  end;
+end;
+
+procedure TForm1.Jour05_2;
+Const
+  CNumeroFichier = '05'; // 2 chiffres, en alpha
+  CJour = 5; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+var
+  Ligne: string;
+  Reponse: integer;
+  Map: TJ5_X;
+  RegMatch: TMatchCollection;
+  x1, y1, x2, y2: integer;
+  x, y: integer;
+  ix, iy: integer;
+begin
+  Map := TJ5_X.Create;
+  try
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin // /([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)/gm
+          RegMatch := tregex.matches(Ligne,
+            '^([0-9]+),([0-9]+) -> ([0-9]+),([0-9]+)$');
+          if (RegMatch.Count = 1) and (RegMatch[0].groups.Count = 5) then
+          begin
+            x1 := RegMatch[0].groups[1].Value.ToInteger;
+            y1 := RegMatch[0].groups[2].Value.ToInteger;
+            x2 := RegMatch[0].groups[3].Value.ToInteger;
+            y2 := RegMatch[0].groups[4].Value.ToInteger;
+            if (x1 = x2) or (y1 = y2) then
+            begin
+              if (x1 < x2) then
+              begin
+                for x := x1 to x2 do
+                  if (y1 < y2) then
+                    for y := y1 to y2 do
+                      Map.incremente(x, y)
+                  else
+                    for y := y1 downto y2 do
+                      Map.incremente(x, y);
+              end
+              else
+              begin
+                for x := x1 downto x2 do
+                  if (y1 < y2) then
+                    for y := y1 to y2 do
+                      Map.incremente(x, y)
+                  else
+                    for y := y1 downto y2 do
+                      Map.incremente(x, y);
+              end;
+            end
+            else
+            begin
+              if (abs(x1 - x2) = abs(y1 - y2)) then
+              begin
+                if x1 > x2 then
+                  ix := -1
+                else if x1 < x2 then
+                  ix := +1
+                else
+                  ix := 0;
+                if y1 > y2 then
+                  iy := -1
+                else if y1 < y2 then
+                  iy := 1
+                else
+                  iy := 0;
+                x := x1;
+                y := y1;
+                repeat
+                  Map.incremente(x, y);
+                  x := x + ix;
+                  y := y + iy;
+                until (x = x2 + ix) and (y = y2 + iy);
+              end;
+            end;
+          end;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+    // Dump sur jeu de test
+//    var
+//      s: string := '';
+//    for y := 0 to 9 do
+//    begin
+//      s := '';
+//      for x := 0 to 9 do
+//        s := s + Map.getValeur(x, y).ToString + ' ';
+//      Memo1.Lines.Add(s);
+//    end;
+    Reponse := 0;
+    for x in Map.keys do
+      for y in Map.items[x].keys do
+        if (Map.getValeur(x, y) > 1) then
+          Reponse := Reponse + 1;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    Map.Free;
+  end;
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
   assignfile(Fichier, NomFichier);
   reset(Fichier);
   FichierOuvert := NomFichier;
+end;
+
+procedure TForm1.TemplateJour;
+Const
+  CNumeroFichier = '05'; // 2 chiffres, en alpha
+  CJour = 5; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  Reponse: integer;
+begin
+  PremiereLigneTraitee := false;
+  repeat
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+    try
+      if PremiereLigneTraitee then
+      begin
+      end
+      else
+      begin
+        PremiereLigneTraitee := true;
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+  AfficheResultat(CJour, CExercice, Reponse);
 end;
 
 { TJ4_Carte }
@@ -695,6 +922,25 @@ constructor TJ4_Case.Create(ANumero: integer);
 begin
   FNumero := ANumero;
   FTire := false;
+end;
+
+{ TJ5_X }
+
+function TJ5_X.getValeur(x, y: integer): integer;
+begin
+  if ContainsKey(x) and items[x].ContainsKey(y) then
+    result := items[x].items[y]
+  else
+    result := 0;
+end;
+
+procedure TJ5_X.incremente(x, y: integer);
+begin
+  if not ContainsKey(x) then
+    Add(x, TJ5_Y.Create);
+  if not items[x].ContainsKey(y) then
+    items[x].Add(y, 0);
+  items[x].items[y] := items[x].items[y] + 1;
 end;
 
 end.
