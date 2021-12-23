@@ -35,6 +35,8 @@ type
     procedure Jour05_2;
     procedure Jour06_1;
     procedure Jour06_2;
+    procedure Jour07_1;
+    procedure Jour07_2;
     procedure TemplateJour;
   end;
 
@@ -101,6 +103,9 @@ begin
   // https://adventofcode.com/2021/day/6
   Jour06_1;
   Jour06_2;
+  // https://adventofcode.com/2021/day/7
+  Jour07_1;
+  Jour07_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -887,6 +892,146 @@ begin
     AfficheResultat(CJour, CExercice, Reponse);
   finally
     NbPoissonsParJourDeGestation.Free;
+  end;
+end;
+
+procedure TForm1.Jour07_1;
+Const
+  CNumeroFichier = '07'; // 2 chiffres, en alpha
+  CJour = 7; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  Reponse: uint64;
+  CrabPos: TDictionary<int64, int64>;
+  // Dictionnaire de nombre de crabes par profondeur
+  FuelMin: int64;
+  posminval, posmaxval: int64;
+begin
+  CrabPos := TDictionary<int64, int64>.Create;
+  try
+    posminval := high(int64);
+    posmaxval := low(int64);
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not PremiereLigneTraitee then
+        begin
+          PremiereLigneTraitee := true;
+          var
+          Tab := Ligne.Split([',']);
+          for var i := 0 to Length(Tab) - 1 do
+          begin
+            var
+              Profondeur: int64 := Tab[i].ToInteger;
+            if CrabPos.ContainsKey(Profondeur) then
+              CrabPos[Profondeur] := CrabPos[Profondeur] + 1
+            else
+              CrabPos.Add(Profondeur, 1);
+            if Profondeur > posmaxval then
+              posmaxval := Profondeur;
+            if Profondeur < posminval then
+              posminval := Profondeur;
+          end;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    FuelMin := high(int64);
+
+    for var i := posminval to posmaxval do
+    begin
+      var
+        fuel: int64 := 0;
+      for var j in CrabPos.keys do
+        fuel := fuel + abs(j - i) * CrabPos[j];
+      // différence entre profondeur qu'on regarde et celle de l'élément fois le nombre de crabes à cette profondeur
+      if fuel < FuelMin then
+        FuelMin := fuel;
+    end;
+    Reponse := FuelMin;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    CrabPos.Free;
+  end;
+end;
+
+procedure TForm1.Jour07_2;
+Const
+  CNumeroFichier = '07'; // 2 chiffres, en alpha
+  CJour = 7; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+
+  function ToCrabFuel(Profondeur: int64): int64;
+  begin
+    result := 0;
+    for var i := 1 to Profondeur do
+      inc(result, i);
+  end;
+
+var
+  PremiereLigneTraitee: boolean;
+  Ligne: string;
+  Reponse: uint64;
+  CrabPos: TDictionary<int64, int64>;
+  // Dictionnaire de nombre de crabes par profondeur
+  FuelMin: int64;
+  posminval, posmaxval: int64;
+begin
+  CrabPos := TDictionary<int64, int64>.Create;
+  try
+    posminval := high(int64);
+    posmaxval := low(int64);
+    PremiereLigneTraitee := false;
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not PremiereLigneTraitee then
+        begin
+          PremiereLigneTraitee := true;
+          var
+          Tab := Ligne.Split([',']);
+          for var i := 0 to Length(Tab) - 1 do
+          begin
+            var
+              Profondeur: int64 := Tab[i].ToInteger;
+            if CrabPos.ContainsKey(Profondeur) then
+              CrabPos[Profondeur] := CrabPos[Profondeur] + 1
+            else
+              CrabPos.Add(Profondeur, 1);
+            if Profondeur > posmaxval then
+              posmaxval := Profondeur;
+            if Profondeur < posminval then
+              posminval := Profondeur;
+          end;
+        end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    FuelMin := high(int64);
+
+    for var i := posminval to posmaxval do
+    begin
+      var
+        fuel: int64 := 0;
+      for var j in CrabPos.keys do
+        fuel := fuel + ToCrabFuel(abs(j - i)) * CrabPos[j];
+      // différence entre profondeur qu'on regarde et celle de l'élément fois le nombre de crabes à cette profondeur
+      if fuel < FuelMin then
+        FuelMin := fuel;
+    end;
+    Reponse := FuelMin;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    CrabPos.Free;
   end;
 end;
 
