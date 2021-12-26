@@ -37,6 +37,8 @@ type
     procedure Jour06_2;
     procedure Jour07_1;
     procedure Jour07_2;
+    procedure Jour08_1;
+    procedure Jour08_2;
     procedure TemplateJour;
   end;
 
@@ -106,6 +108,9 @@ begin
   // https://adventofcode.com/2021/day/7
   Jour07_1;
   Jour07_2;
+  // https://adventofcode.com/2021/day/8
+  Jour08_1;
+  Jour08_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -1035,6 +1040,209 @@ begin
   end;
 end;
 
+procedure TForm1.Jour08_1;
+Const
+  CNumeroFichier = '08'; // 2 chiffres, en alpha
+  CJour = 8; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+  function trier(s: string): string;
+  var
+    Tab: tstringlist;
+  begin
+    Tab := tstringlist.Create;
+    try
+      for var i := 0 to 6 do
+        if i < s.Length then
+          Tab.Add(s.Chars[i]);
+      Tab.Sort;
+      result := '';
+      for var i := 0 to Tab.Count - 1 do
+        if Tab[i].Length > 0 then
+          result := result + Tab[i];
+    finally
+      Tab.Free;
+    end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Chiffres: array [0 .. 9] of string;
+begin
+  Reponse := 0;
+  repeat
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+    try
+      if not Ligne.IsEmpty then
+      begin
+        var
+        Tab := Ligne.Split([' ']);
+        if Length(Tab) = 15 then // 10 chiffres, le séparateur, 10 chiffres
+        begin
+          for var i := 0 to 9 do
+          begin
+            if Length(Tab[i]) = 2 then // 2 segments => chiffre 1
+              Chiffres[1] := trier(Tab[i])
+            else if Length(Tab[i]) = 4 then // 4 segments => chiffre 4
+              Chiffres[4] := trier(Tab[i])
+            else if Length(Tab[i]) = 3 then // 3 segments => chiffre 7
+              Chiffres[7] := trier(Tab[i])
+            else if Length(Tab[i]) = 7 then // 7 segments => chiffre 8
+              Chiffres[8] := trier(Tab[i]);
+          end;
+          for var i := 11 to 14 do
+          begin
+            if (Chiffres[1] = trier(Tab[i])) then
+              inc(Reponse)
+            else if (Chiffres[4] = trier(Tab[i])) then
+              inc(Reponse)
+            else if (Chiffres[7] = trier(Tab[i])) then
+              inc(Reponse)
+            else if (Chiffres[8] = trier(Tab[i])) then
+              inc(Reponse);
+          end;
+        end;
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour08_2;
+Const
+  CNumeroFichier = '08'; // 2 chiffres, en alpha
+  CJour = 8; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+  function trier(s: string): string;
+  var
+    Tab: tstringlist;
+  begin
+    Tab := tstringlist.Create;
+    try
+      for var i := 0 to 6 do
+        if (i < s.Length) and (Tab.IndexOf(s.Chars[i]) = -1) then
+          Tab.Add(s.Chars[i]);
+      Tab.Sort;
+      result := '';
+      for var i := 0 to Tab.Count - 1 do
+        if Tab[i].Length > 0 then
+          result := result + Tab[i];
+    finally
+      Tab.Free;
+    end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Chiffres: array [0 .. 9] of string;
+  i, k: integer;
+  nombre: uint64;
+begin
+  Reponse := 0;
+  repeat
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+    try
+      if not Ligne.IsEmpty then
+      begin
+        var
+        Tab := Ligne.Split([' ']);
+        if Length(Tab) = 15 then // 10 chiffres, le séparateur, 10 chiffres
+        begin
+          var
+          Liste235 := tstringlist.Create;
+          var
+          Liste069 := tstringlist.Create;
+          try
+            // Récupération des chiffres à nombre de segment unique
+            for i := 0 to 9 do
+            begin
+              if Length(Tab[i]) = 2 then // 2 segments => chiffre 1
+                Chiffres[1] := trier(Tab[i])
+              else if Length(Tab[i]) = 3 then // 3 segments => chiffre 7
+                Chiffres[7] := trier(Tab[i])
+              else if Length(Tab[i]) = 4 then // 4 segments => chiffre 4
+                Chiffres[4] := trier(Tab[i])
+              else if Length(Tab[i]) = 5 then
+                // 5 segments => chiffres 2, 3 ou 5
+                Liste235.Add(trier(Tab[i]))
+              else if Length(Tab[i]) = 6 then
+                // 6 segments => chiffres 0, 6 ou 9
+                Liste069.Add(trier(Tab[i]))
+              else if Length(Tab[i]) = 7 then // 7 segments => chiffre 8
+                Chiffres[8] := trier(Tab[i]);
+            end;
+
+            // On récupère l'angle du 4 en lui enlevant les segment communs avec le 1
+            var
+              Chiffre4Ampute: string := '';
+            for i := 0 to 3 do
+              if Chiffres[1].IndexOf(Chiffres[4].Chars[i]) = -1 then
+                Chiffre4Ampute := Chiffres[4].Chars[i];
+
+            // traitement des chiffres à 5 segments : 2, 3, 5
+            for i := 0 to Liste235.Count - 1 do
+            begin
+              // recherche du 3 => celui qui a les deux lettres du 1
+              if (Liste235[i].IndexOf(Chiffres[1].Chars[0]) > -1) and
+                (Liste235[i].IndexOf(Chiffres[1].Chars[1]) > -1) then
+                Chiffres[3] := Liste235[i]
+                // recherche du 5 => celui qui a les mêmes deux lettres que le 4 si on lui enlève celles du 1
+              else if (Liste235[i].IndexOf(Chiffre4Ampute.Chars[0]) > -1) and
+                (Liste235[i].IndexOf(Chiffre4Ampute.Chars[1]) > -1) then
+                Chiffres[5] := Liste235[i]
+              else
+                Chiffres[2] := Liste235[i];
+            end;
+
+            // Le 9 c'est un 5 avec les 2 segments du 1
+            Chiffres[9] := trier(Chiffres[5] + Chiffres[1]);
+
+            // traitement des chiffres à 6 segments : 0, 6, 9
+            for i := 0 to Liste069.Count - 1 do
+            begin
+              // recherche du 6 => un seul segment commun avec le 1
+              if (Liste069[i].IndexOf(Chiffres[1].Chars[0]) = -1) or
+                (Liste069[i].IndexOf(Chiffres[1].Chars[1]) = -1) then
+                Chiffres[6] := Liste069[i]
+                // recherche du 0 => c'est celui qui n'est pas 9
+              else if (Chiffres[9] <> trier(Liste069[i])) then
+                Chiffres[0] := Liste069[i];
+            end;
+
+          finally
+            Liste069.Free;
+            Liste235.Free;
+          end;
+
+          nombre := 0;
+          for i := 11 to 14 do
+          begin
+            for k := 0 to 9 do
+              if Chiffres[k] = trier(Tab[i]) then
+              begin
+                nombre := nombre * 10 + k;
+                break;
+              end;
+          end;
+          Memo1.Lines.Add(Ligne);
+          Memo1.Lines.Add(nombre.ToString);
+          Reponse := Reponse + nombre;
+        end
+        else
+          raise exception.Create('ligne à plus de 15 : ' + Ligne);
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
@@ -1045,7 +1253,8 @@ end;
 
 procedure TForm1.TemplateJour;
 Const
-  CNumeroFichier = '05'; // 2 chiffres, en alpha
+  CNumeroFichier = '05';
+  // 2 chiffres, en alpha
   CJour = 5; // Numéro du jour
   CExercice = 1; // Numéro exercice
 var
