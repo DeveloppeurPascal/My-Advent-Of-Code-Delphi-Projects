@@ -1122,8 +1122,8 @@ Const
   begin
     Tab := tstringlist.Create;
     try
-      for var i := 0 to 6 do
-        if (i < s.Length) and (Tab.IndexOf(s.Chars[i]) = -1) then
+      for var i := 0 to s.Length - 1 do
+        if (Tab.IndexOf(s.Chars[i]) = -1) then
           Tab.Add(s.Chars[i]);
       Tab.Sort;
       result := '';
@@ -1141,6 +1141,7 @@ var
   Chiffres: array [0 .. 9] of string;
   i, k: integer;
   nombre: uint64;
+  valeur: string;
 begin
   Reponse := 0;
   repeat
@@ -1181,7 +1182,7 @@ begin
               Chiffre4Ampute: string := '';
             for i := 0 to 3 do
               if Chiffres[1].IndexOf(Chiffres[4].Chars[i]) = -1 then
-                Chiffre4Ampute := Chiffres[4].Chars[i];
+                Chiffre4Ampute := Chiffre4Ampute + Chiffres[4].Chars[i];
 
             // traitement des chiffres à 5 segments : 2, 3, 5
             for i := 0 to Liste235.Count - 1 do
@@ -1209,7 +1210,7 @@ begin
                 (Liste069[i].IndexOf(Chiffres[1].Chars[1]) = -1) then
                 Chiffres[6] := Liste069[i]
                 // recherche du 0 => c'est celui qui n'est pas 9
-              else if (Chiffres[9] <> trier(Liste069[i])) then
+              else if (Chiffres[9] <> Liste069[i]) then
                 Chiffres[0] := Liste069[i];
             end;
 
@@ -1221,15 +1222,16 @@ begin
           nombre := 0;
           for i := 11 to 14 do
           begin
+            valeur := trier(Tab[i]);
             for k := 0 to 9 do
-              if Chiffres[k] = trier(Tab[i]) then
+              if Chiffres[k] = valeur then
               begin
                 nombre := nombre * 10 + k;
                 break;
               end;
           end;
-          Memo1.Lines.Add(Ligne);
-          Memo1.Lines.Add(nombre.ToString);
+//          Memo1.Lines.Add(Ligne);
+//          Memo1.Lines.Add(nombre.ToString);
           Reponse := Reponse + nombre;
         end
         else
