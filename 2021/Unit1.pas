@@ -4,11 +4,12 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics,
+  System.Classes, Vcl.Graphics, System.Generics.Collections,
+  System.Generics.Defaults,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
 
 type
-  TForm1 = class(TForm)
+  TForm1 = class(TForm, IComparer<uint64>)
     Memo1: TMemo;
     procedure FormShow(Sender: TObject);
   private
@@ -42,7 +43,11 @@ type
     procedure Jour09_1;
     procedure Jour09_1_bis;
     procedure Jour09_2;
+    procedure Jour10_1;
+    procedure Jour10_2;
     procedure TemplateJour;
+
+    function Compare(const Left, Right: uint64): Integer;
   end;
 
 var
@@ -53,7 +58,7 @@ implementation
 {$R *.dfm}
 
 Uses
-  System.Generics.Collections, System.RegularExpressions, System.IOUtils;
+  System.RegularExpressions, System.IOUtils;
 
 procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: uint64);
 begin
@@ -63,7 +68,7 @@ end;
 
 function TForm1.BinToInt64(Bin: string): int64;
 var
-  i: integer;
+  i: Integer;
 begin
   result := 0;
   for i := 0 to Bin.Length - 1 do
@@ -71,6 +76,16 @@ begin
       result := result * 2
     else
       result := result * 2 + 1;
+end;
+
+function TForm1.Compare(const Left, Right: uint64): Integer;
+begin
+  if Left < Right then
+    result := -1
+  else if Left > Right then
+    result := 1
+  else
+    result := 0;
 end;
 
 procedure TForm1.FermeFichier;
@@ -118,6 +133,9 @@ begin
   Jour09_1;
   Jour09_1_bis;
   Jour09_2;
+  // https://adventofcode.com/2021/day/10
+  Jour10_1;
+  Jour10_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -320,13 +338,13 @@ type
   TTabBin = array [0 .. 1] of int64;
 var
   Ligne: string;
-  GammaRate: integer;
+  GammaRate: Integer;
   // composé par les bits les plus présents dans chaque colonne du fichier
-  EpsilonRate: integer;
+  EpsilonRate: Integer;
   // composé par les bits les moins présents dans chaque colonne du fichier
   Tab: array of TTabBin; // Nombre d'occurrence de 0/1 par colonne
   PremiereLigne: boolean;
-  i: integer;
+  i: Integer;
 begin
   PremiereLigne := true;
   repeat
@@ -430,9 +448,9 @@ end;
 type
   TJ4_Case = class
   public
-    FNumero: integer;
+    FNumero: Integer;
     FTire: boolean;
-    constructor Create(ANumero: integer);
+    constructor Create(ANumero: Integer);
   end;
 
   TJ4_Grille = array [1 .. 5, 1 .. 5] of TJ4_Case;
@@ -441,12 +459,12 @@ type
   public
     FGrille: TJ4_Grille;
     FGagnante: boolean;
-    procedure Numero(ACol, ALig, ANumero: integer); overload;
-    function Numero(ACol, ALig: integer): integer; overload;
-    function isLigneFinie(ALig: integer): boolean;
-    function isColonneFinie(ACol: integer): boolean;
-    function isGrilleGagnanteAvecNumero(ANumero: integer): boolean;
-    function TotalNumerosNonTires: integer;
+    procedure Numero(ACol, ALig, ANumero: Integer); overload;
+    function Numero(ACol, ALig: Integer): Integer; overload;
+    function isLigneFinie(ALig: Integer): boolean;
+    function isColonneFinie(ACol: Integer): boolean;
+    function isGrilleGagnanteAvecNumero(ANumero: Integer): boolean;
+    function TotalNumerosNonTires: Integer;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -461,11 +479,11 @@ var
   PremiereLigneTraitee: boolean;
   Ligne: string;
   sListeNumeros: string;
-  numCol, NumLig, Numero: integer;
+  numCol, NumLig, Numero: Integer;
   Board: TJ4_Carte;
   ListeCartes: TJ4_ListeDeCartes;
-  NumeroTire: integer;
-  i: integer;
+  NumeroTire: Integer;
+  i: Integer;
 begin
   // Lecture des données et remplissage
   ListeCartes := TJ4_ListeDeCartes.Create;
@@ -534,11 +552,11 @@ var
   PremiereLigneTraitee: boolean;
   Ligne: string;
   sListeNumeros: string;
-  numCol, NumLig, Numero: integer;
+  numCol, NumLig, Numero: Integer;
   Board, DerniereGrilleGagnante: TJ4_Carte;
   ListeCartes: TJ4_ListeDeCartes;
-  NumeroTire, DernierNumeroTire: integer;
-  i: integer;
+  NumeroTire, DernierNumeroTire: Integer;
+  i: Integer;
 begin
   // Lecture des données et remplissage
   ListeCartes := TJ4_ListeDeCartes.Create;
@@ -606,12 +624,12 @@ end;
 
 // Types utilisés pour le Jour 5
 type
-  TJ5_Y = TDictionary<integer, integer>; // Y en clé, nb en valeur
+  TJ5_Y = TDictionary<Integer, Integer>; // Y en clé, nb en valeur
 
-  TJ5_X = class(TObjectDictionary<integer, TJ5_Y>) // X en clé, (Y,nb) en valeur
+  TJ5_X = class(TObjectDictionary<Integer, TJ5_Y>) // X en clé, (Y,nb) en valeur
   public
-    procedure incremente(x, y: integer);
-    function getValeur(x, y: integer): integer;
+    procedure incremente(x, y: Integer);
+    function getValeur(x, y: Integer): Integer;
   end;
 
 procedure TForm1.Jour05_1;
@@ -624,8 +642,8 @@ var
   Reponse: uint64;
   Map: TJ5_X;
   RegMatch: TMatchCollection;
-  x1, y1, x2, y2: integer;
-  x, y: integer;
+  x1, y1, x2, y2: Integer;
+  x, y: Integer;
 begin
   Map := TJ5_X.Create;
   try
@@ -701,9 +719,9 @@ var
   Reponse: uint64;
   Map: TJ5_X;
   RegMatch: TMatchCollection;
-  x1, y1, x2, y2: integer;
-  x, y: integer;
-  ix, iy: integer;
+  x1, y1, x2, y2: Integer;
+  x, y: Integer;
+  ix, iy: Integer;
 begin
   Map := TJ5_X.Create;
   try
@@ -805,12 +823,12 @@ var
   PremiereLigneTraitee: boolean;
   Ligne: string;
   Reponse: uint64;
-  poissons: tlist<integer>;
-  Jour: integer;
-  nb: integer;
-  i: integer;
+  poissons: tlist<Integer>;
+  Jour: Integer;
+  nb: Integer;
+  i: Integer;
 begin
-  poissons := tlist<integer>.Create;
+  poissons := tlist<Integer>.Create;
   try
     PremiereLigneTraitee := false;
     repeat
@@ -1148,7 +1166,7 @@ var
   Ligne: string;
   Reponse: uint64;
   Chiffres: array [0 .. 9] of string;
-  i, k: integer;
+  i, k: Integer;
   nombre: uint64;
   valeur: string;
 begin
@@ -1306,7 +1324,7 @@ var
   Ligne: string;
   Map: array [0 .. 99, 0 .. 99] of byte;
   Reponse: uint64;
-  Lig, Col: integer;
+  Lig, Col: Integer;
 begin
   // Loading datas from text file to [100x100] array of byte
   var
@@ -1348,7 +1366,7 @@ type
   TMapJour09 = array [0 .. 99, 0 .. 99] of byte;
 
   function calculeTailleBassin(var Map: TMapJour09;
-    Col, Lig, NiveauAComparer: integer): integer;
+    Col, Lig, NiveauAComparer: Integer): Integer;
   begin
     if (Lig >= 0) and (Lig <= 99) and (Col >= 0) and (Col <= 99) and
       (Map[Col, Lig] >= NiveauAComparer) and (Map[Col, Lig] < 9) then
@@ -1368,9 +1386,9 @@ var
   Ligne: string;
   Map: TMapJour09;
   Reponse: uint64;
-  Lig, Col: integer;
-  TailleBassinMax: array [0 .. 2] of integer;
-  TailleBassin: integer;
+  Lig, Col: Integer;
+  TailleBassinMax: array [0 .. 2] of Integer;
+  TailleBassin: Integer;
 begin
   // Loading datas from text file to [100x100] array of byte
   var
@@ -1417,176 +1435,345 @@ begin
   AfficheResultat(CJour, CExercice, Reponse);
 end;
 
-procedure TForm1.OuvreFichier(NomFichier: string);
-begin
-  FermeFichier;
-  assignfile(Fichier, NomFichier);
-  reset(Fichier);
-  FichierOuvert := NomFichier;
-end;
-
-procedure TForm1.TemplateJour;
+procedure TForm1.Jour10_1;
 Const
-  CNumeroFichier = '05';
+  CNumeroFichier = '10';
   // 2 chiffres, en alpha
-  CJour = 5; // Numéro du jour
+  CJour = 10; // Numéro du jour
   CExercice = 1; // Numéro exercice
+
+  function getSymboleDeFin(Debut: char): char;
+  begin
+    case Debut of
+      '(':
+        result := ')';
+      '<':
+        result := '>';
+      '{':
+        result := '}';
+      '[':
+        result := ']';
+    else
+      result := #0;
+    end;
+  end;
+
 var
-  PremiereLigneTraitee: boolean;
   Ligne: string;
   Reponse: uint64;
+  pile: tstack<char>;
+  SymboleDebut: char;
+  SymboleDeFin: char;
 begin
-  PremiereLigneTraitee := false;
-  repeat
-    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+  pile := tstack<char>.Create;
+  try
+    Reponse := 0;
+    repeat
+      pile.Clear;
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        for var i := 0 to Ligne.Length - 1 do
+          if (Ligne.Chars[i] in ['(', '<', '[', '{']) then // symbole de début
+            pile.Push(Ligne.Chars[i])
+          else
+          begin
+            if pile.Count < 1 then
+              SymboleDebut := #0
+            else
+              SymboleDebut := pile.Pop;
+            SymboleDeFin := Ligne.Chars[i];
+            if SymboleDeFin <> getSymboleDeFin(SymboleDebut) then
+            begin
+              case SymboleDeFin of
+                ')':
+                  Reponse := Reponse + 3; // )
+                ']':
+                  Reponse := Reponse + 57; // ]
+                '}':
+                  Reponse := Reponse + 1197; // }
+                '>':
+                  Reponse := Reponse + 25137; // >
+              end;
+              break;
+            end;
+          end;
+      except
+
+      end;
+    until FinDeFichier;
+    FermeFichier;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    pile.Free;
+  end;
+end;
+
+procedure TForm1.Jour10_2;
+Const
+  CNumeroFichier = '10';
+  // 2 chiffres, en alpha
+  CJour = 10; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+
+  function getSymboleDeFin(Debut: char): char;
+  begin
+    case Debut of
+      '(':
+        result := ')';
+      '<':
+        result := '>';
+      '{':
+        result := '}';
+      '[':
+        result := ']';
+    else
+      result := #0;
+    end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  pile: tstack<char>;
+  SymboleDebut: char;
+  SymboleDeFin: char;
+  SyntaxError: boolean;
+  Score: uint64;
+  Scores: tlist<uint64>;
+begin
+  pile := tstack<char>.Create;
+  try
+    Scores := tlist<uint64>.Create;
     try
-      if PremiereLigneTraitee then
+      Reponse := 0;
+      repeat
+        pile.Clear;
+        SyntaxError := false;
+        Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+        try
+          for var i := 0 to Ligne.Length - 1 do
+            if (Ligne.Chars[i] in ['(', '<', '[', '{']) then // symbole de début
+              pile.Push(Ligne.Chars[i])
+            else
+            begin
+              if pile.Count < 1 then
+                SymboleDebut := #0
+              else
+                SymboleDebut := pile.Pop;
+              SymboleDeFin := Ligne.Chars[i];
+              if SymboleDeFin <> getSymboleDeFin(SymboleDebut) then
+              begin
+                SyntaxError := true;
+                break;
+              end;
+            end;
+          Score := 0;
+          if not SyntaxError then
+            // ligne cohérente, voir si elle est finie et la compléter
+            while pile.Count > 0 do
+            begin
+              SymboleDebut := pile.Pop;
+              case getSymboleDeFin(SymboleDebut) of
+                ')':
+                  Score := Score * 5 + 1;
+                ']':
+                  Score := Score * 5 + 2;
+                '}':
+                  Score := Score * 5 + 3;
+                '>':
+                  Score := Score * 5 + 4;
+              end;
+            end;
+            if Score > 0 then
+              Scores.Add(Score);
+          except
+
+          end;
+          until FinDeFichier;
+          FermeFichier;
+
+          Scores.Sort(self);
+
+          Reponse := Scores[Scores.Count div 2];
+          AfficheResultat(CJour, CExercice, Reponse);
+        finally
+          Scores.Free;
+        end;
+      finally
+        pile.Free;
+      end;
+    end;
+
+    procedure TForm1.OuvreFichier(NomFichier: string);
+    begin
+      FermeFichier;
+      assignfile(Fichier, NomFichier);
+      reset(Fichier);
+      FichierOuvert := NomFichier;
+    end;
+
+    procedure TForm1.TemplateJour;
+    Const
+      CNumeroFichier = '05';
+      // 2 chiffres, en alpha
+      CJour = 5; // Numéro du jour
+      CExercice = 1; // Numéro exercice
+    var
+      PremiereLigneTraitee: boolean;
+      Ligne: string;
+      Reponse: uint64;
+    begin
+      PremiereLigneTraitee := false;
+      repeat
+        Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+        try
+          if PremiereLigneTraitee then
+          begin
+          end
+          else
+          begin
+            PremiereLigneTraitee := true;
+          end;
+        except
+
+        end;
+      until FinDeFichier;
+      FermeFichier;
+      AfficheResultat(CJour, CExercice, Reponse);
+    end;
+
+    { TJ4_Carte }
+
+    constructor TJ4_Carte.Create;
+    var
+      Col, Lig: Integer;
+    begin
+      for Col := 1 to 5 do
+        for Lig := 1 to 5 do
+          FGrille[Col, Lig] := nil;
+      FGagnante := false;
+    end;
+
+    procedure TJ4_Carte.Numero(ACol, ALig, ANumero: Integer);
+    begin
+      if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) then
       begin
+        if (FGrille[ACol, ALig] = nil) then
+          FGrille[ACol, ALig] := TJ4_Case.Create(ANumero)
+        else
+        begin
+          FGrille[ACol, ALig].FNumero := ANumero;
+          FGrille[ACol, ALig].FTire := false;
+        end;
       end
       else
-      begin
-        PremiereLigneTraitee := true;
-      end;
-    except
-
+        raise exception.Create('Pas dans la grille');
     end;
-  until FinDeFichier;
-  FermeFichier;
-  AfficheResultat(CJour, CExercice, Reponse);
-end;
 
-{ TJ4_Carte }
-
-constructor TJ4_Carte.Create;
-var
-  Col, Lig: integer;
-begin
-  for Col := 1 to 5 do
-    for Lig := 1 to 5 do
-      FGrille[Col, Lig] := nil;
-  FGagnante := false;
-end;
-
-procedure TJ4_Carte.Numero(ACol, ALig, ANumero: integer);
-begin
-  if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) then
-  begin
-    if (FGrille[ACol, ALig] = nil) then
-      FGrille[ACol, ALig] := TJ4_Case.Create(ANumero)
-    else
+    destructor TJ4_Carte.Destroy;
+    var
+      Col, Lig: Integer;
     begin
-      FGrille[ACol, ALig].FNumero := ANumero;
-      FGrille[ACol, ALig].FTire := false;
+      for Col := 1 to 5 do
+        for Lig := 1 to 5 do
+          if (FGrille[Col, Lig] <> nil) then
+            FGrille[Col, Lig].Free;
+      inherited;
     end;
-  end
-  else
-    raise exception.Create('Pas dans la grille');
-end;
 
-destructor TJ4_Carte.Destroy;
-var
-  Col, Lig: integer;
-begin
-  for Col := 1 to 5 do
-    for Lig := 1 to 5 do
-      if (FGrille[Col, Lig] <> nil) then
-        FGrille[Col, Lig].Free;
-  inherited;
-end;
-
-function TJ4_Carte.isColonneFinie(ACol: integer): boolean;
-var
-  Lig: integer;
-begin
-  result := false;
-  if (ACol in [1 .. 5]) then
-  begin
-    result := true;
-    for Lig := 1 to 5 do
-      result := result and (FGrille[ACol, Lig] <> nil) and
-        FGrille[ACol, Lig].FTire;
-  end;
-end;
-
-function TJ4_Carte.isGrilleGagnanteAvecNumero(ANumero: integer): boolean;
-var
-  Col, Lig: integer;
-begin
-  result := false;
-  for Col := 1 to 5 do
-    for Lig := 1 to 5 do
-      if (FGrille[Col, Lig] <> nil) and (FGrille[Col, Lig].FNumero = ANumero)
-      then
+    function TJ4_Carte.isColonneFinie(ACol: Integer): boolean;
+    var
+      Lig: Integer;
+    begin
+      result := false;
+      if (ACol in [1 .. 5]) then
       begin
-        FGrille[Col, Lig].FTire := true;
-        if isLigneFinie(Lig) or isColonneFinie(Col) then
-        begin
-          result := true;
-          FGagnante := true;
-          exit;
-        end;
+        result := true;
+        for Lig := 1 to 5 do
+          result := result and (FGrille[ACol, Lig] <> nil) and
+            FGrille[ACol, Lig].FTire;
       end;
-end;
+    end;
 
-function TJ4_Carte.isLigneFinie(ALig: integer): boolean;
-var
-  Col: integer;
-begin
-  result := false;
-  if (ALig in [1 .. 5]) then
-  begin
-    result := true;
-    for Col := 1 to 5 do
-      result := result and (FGrille[Col, ALig] <> nil) and
-        FGrille[Col, ALig].FTire;
-  end;
-end;
+    function TJ4_Carte.isGrilleGagnanteAvecNumero(ANumero: Integer): boolean;
+    var
+      Col, Lig: Integer;
+    begin
+      result := false;
+      for Col := 1 to 5 do
+        for Lig := 1 to 5 do
+          if (FGrille[Col, Lig] <> nil) and (FGrille[Col, Lig].FNumero = ANumero)
+          then
+          begin
+            FGrille[Col, Lig].FTire := true;
+            if isLigneFinie(Lig) or isColonneFinie(Col) then
+            begin
+              result := true;
+              FGagnante := true;
+              exit;
+            end;
+          end;
+    end;
 
-function TJ4_Carte.Numero(ACol, ALig: integer): integer;
-begin
-  if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) and (FGrille[ACol, ALig] <> nil)
-  then
-    result := FGrille[ACol, ALig].FNumero
-  else
-    raise exception.Create('Pas dans la grille ou pas de case');
-end;
+    function TJ4_Carte.isLigneFinie(ALig: Integer): boolean;
+    var
+      Col: Integer;
+    begin
+      result := false;
+      if (ALig in [1 .. 5]) then
+      begin
+        result := true;
+        for Col := 1 to 5 do
+          result := result and (FGrille[Col, ALig] <> nil) and
+            FGrille[Col, ALig].FTire;
+      end;
+    end;
 
-function TJ4_Carte.TotalNumerosNonTires: integer;
-var
-  Col, Lig: integer;
-begin
-  result := 0;
-  for Col := 1 to 5 do
-    for Lig := 1 to 5 do
-      if (FGrille[Col, Lig] <> nil) and (not FGrille[Col, Lig].FTire) then
-        result := result + FGrille[Col, Lig].FNumero;
-end;
+    function TJ4_Carte.Numero(ACol, ALig: Integer): Integer;
+    begin
+      if (ACol in [1 .. 5]) and (ALig in [1 .. 5]) and
+        (FGrille[ACol, ALig] <> nil) then
+        result := FGrille[ACol, ALig].FNumero
+      else
+        raise exception.Create('Pas dans la grille ou pas de case');
+    end;
 
-{ TJ4_Case }
+    function TJ4_Carte.TotalNumerosNonTires: Integer;
+    var
+      Col, Lig: Integer;
+    begin
+      result := 0;
+      for Col := 1 to 5 do
+        for Lig := 1 to 5 do
+          if (FGrille[Col, Lig] <> nil) and (not FGrille[Col, Lig].FTire) then
+            result := result + FGrille[Col, Lig].FNumero;
+    end;
 
-constructor TJ4_Case.Create(ANumero: integer);
-begin
-  FNumero := ANumero;
-  FTire := false;
-end;
+    { TJ4_Case }
 
-{ TJ5_X }
+    constructor TJ4_Case.Create(ANumero: Integer);
+    begin
+      FNumero := ANumero;
+      FTire := false;
+    end;
 
-function TJ5_X.getValeur(x, y: integer): integer;
-begin
-  if ContainsKey(x) and items[x].ContainsKey(y) then
-    result := items[x].items[y]
-  else
-    result := 0;
-end;
+    { TJ5_X }
 
-procedure TJ5_X.incremente(x, y: integer);
-begin
-  if not ContainsKey(x) then
-    Add(x, TJ5_Y.Create);
-  if not items[x].ContainsKey(y) then
-    items[x].Add(y, 0);
-  items[x].items[y] := items[x].items[y] + 1;
-end;
+    function TJ5_X.getValeur(x, y: Integer): Integer;
+    begin
+      if ContainsKey(x) and items[x].ContainsKey(y) then
+        result := items[x].items[y]
+      else
+        result := 0;
+    end;
+
+    procedure TJ5_X.incremente(x, y: Integer);
+    begin
+      if not ContainsKey(x) then
+        Add(x, TJ5_Y.Create);
+      if not items[x].ContainsKey(y) then
+        items[x].Add(y, 0);
+      items[x].items[y] := items[x].items[y] + 1;
+    end;
 
 end.
