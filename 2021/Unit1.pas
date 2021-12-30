@@ -39,6 +39,9 @@ type
     procedure Jour07_2;
     procedure Jour08_1;
     procedure Jour08_2;
+    procedure Jour09_1;
+    procedure Jour09_1_bis;
+    procedure Jour09_2;
     procedure TemplateJour;
   end;
 
@@ -50,7 +53,7 @@ implementation
 {$R *.dfm}
 
 Uses
-  System.Generics.Collections, System.RegularExpressions;
+  System.Generics.Collections, System.RegularExpressions, System.IOUtils;
 
 procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: uint64);
 begin
@@ -111,6 +114,10 @@ begin
   // https://adventofcode.com/2021/day/8
   Jour08_1;
   Jour08_2;
+  // https://adventofcode.com/2021/day/9
+  Jour09_1;
+  Jour09_1_bis;
+  Jour09_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -118,7 +125,9 @@ begin
   if (NomFichier <> FichierOuvert) then
     OuvreFichier(NomFichier);
   if (not FinDeFichier) then
-    readln(Fichier, result);
+    readln(Fichier, result)
+  else
+    result := '';
   result := result.Trim;
 end;
 
@@ -1230,8 +1239,8 @@ begin
                 break;
               end;
           end;
-//          Memo1.Lines.Add(Ligne);
-//          Memo1.Lines.Add(nombre.ToString);
+          // Memo1.Lines.Add(Ligne);
+          // Memo1.Lines.Add(nombre.ToString);
           Reponse := Reponse + nombre;
         end
         else
@@ -1242,6 +1251,169 @@ begin
     end;
   until FinDeFichier;
   FermeFichier;
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour09_1;
+Const
+  CNumeroFichier = '09';
+  // 2 chiffres, en alpha
+  CJour = 9; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  LignePrecedente, LigneATraiter, LigneEnCours: string;
+  Reponse: uint64;
+begin
+  Reponse := 0;
+  LignePrecedente := '';
+  LigneATraiter := '';
+  LigneEnCours := '';
+  repeat
+    LignePrecedente := LigneATraiter;
+    LigneATraiter := LigneEnCours;
+    LigneEnCours := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+    try
+      if not LigneATraiter.IsEmpty then
+      begin
+        var
+        FinDeBoucle := LigneATraiter.Length - 1;
+        for var i := 0 to FinDeBoucle do
+        begin
+          var
+          c := LigneATraiter.Chars[i];
+          if ((i = 0) or (c < LigneATraiter.Chars[i - 1])) and
+            ((i = FinDeBoucle) or (c < LigneATraiter.Chars[i + 1])) and
+            (LignePrecedente.IsEmpty or (c < LignePrecedente.Chars[i])) and
+            (LigneEnCours.IsEmpty or (c < LigneEnCours.Chars[i])) then
+            Reponse := Reponse + strtoint(c) + 1;
+        end;
+      end;
+    except
+
+    end;
+  until FinDeFichier and LigneATraiter.IsEmpty;
+  FermeFichier;
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour09_1_bis;
+Const
+  CNumeroFichier = '09';
+  // 2 chiffres, en alpha
+  CJour = 9; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+var
+  Ligne: string;
+  Map: array [0 .. 99, 0 .. 99] of byte;
+  Reponse: uint64;
+  Lig, Col: integer;
+begin
+  // Loading datas from text file to [100x100] array of byte
+  var
+  lignes := tfile.ReadAllLines('..\..\input-' + CNumeroFichier + '.txt');
+  if (Length(lignes) > 100) then
+    raise exception.Create('Plus de 100 lignes. Redimensionner tableau.');
+  Lig := 0;
+  for Ligne in lignes do
+  begin
+    if (Ligne.Length > 100) then
+      raise exception.Create
+        ('Plus de 100 caractères dans une ligne. Redimensionner tableau.');
+    for Col := 0 to Ligne.Length - 1 do
+      Map[Col, Lig] := strtoint(Ligne.Chars[Col]);
+    inc(Lig);
+  end;
+
+  // Find low points
+  Reponse := 0;
+  for Lig := 0 to 99 do
+    for Col := 0 to 99 do
+      if ((Col = 0) or (Map[Col, Lig] < Map[Col - 1, Lig])) and
+        ((Col = 99) or (Map[Col, Lig] < Map[Col + 1, Lig])) and
+        ((Lig = 0) or (Map[Col, Lig] < Map[Col, Lig - 1])) and
+        ((Lig = 99) or (Map[Col, Lig] < Map[Col, Lig + 1])) then
+        Reponse := Reponse + Map[Col, Lig] + 1;
+
+  // Show answer
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour09_2;
+Const
+  CNumeroFichier = '09';
+  // 2 chiffres, en alpha
+  CJour = 9; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+type
+  TMapJour09 = array [0 .. 99, 0 .. 99] of byte;
+
+  function calculeTailleBassin(var Map: TMapJour09;
+    Col, Lig, NiveauAComparer: integer): integer;
+  begin
+    if (Lig >= 0) and (Lig <= 99) and (Col >= 0) and (Col <= 99) and
+      (Map[Col, Lig] >= NiveauAComparer) and (Map[Col, Lig] < 9) then
+    begin
+      NiveauAComparer := Map[Col, Lig];
+      Map[Col, Lig] := 9;
+      result := 1 + calculeTailleBassin(Map, Col - 1, Lig, NiveauAComparer) +
+        calculeTailleBassin(Map, Col + 1, Lig, NiveauAComparer) +
+        calculeTailleBassin(Map, Col, Lig - 1, NiveauAComparer) +
+        calculeTailleBassin(Map, Col, Lig + 1, NiveauAComparer);
+    end
+    else
+      result := 0;
+  end;
+
+var
+  Ligne: string;
+  Map: TMapJour09;
+  Reponse: uint64;
+  Lig, Col: integer;
+  TailleBassinMax: array [0 .. 2] of integer;
+  TailleBassin: integer;
+begin
+  // Loading datas from text file to [100x100] array of byte
+  var
+  lignes := tfile.ReadAllLines('..\..\input-' + CNumeroFichier + '.txt');
+  if (Length(lignes) > 100) then
+    raise exception.Create('Plus de 100 lignes. Redimensionner tableau.');
+  Lig := 0;
+  for Ligne in lignes do
+  begin
+    if (Ligne.Length > 100) then
+      raise exception.Create
+        ('Plus de 100 caractères dans une ligne. Redimensionner tableau.');
+    for Col := 0 to Ligne.Length - 1 do
+      Map[Col, Lig] := strtoint(Ligne.Chars[Col]);
+    inc(Lig);
+  end;
+
+  // Find low points
+  for var i := 0 to 2 do
+    TailleBassinMax[i] := 0;
+
+  for Lig := 0 to 99 do
+    for Col := 0 to 99 do
+      if ((Col = 0) or (Map[Col, Lig] < Map[Col - 1, Lig])) and
+        ((Col = 99) or (Map[Col, Lig] < Map[Col + 1, Lig])) and
+        ((Lig = 0) or (Map[Col, Lig] < Map[Col, Lig - 1])) and
+        ((Lig = 99) or (Map[Col, Lig] < Map[Col, Lig + 1])) then
+      begin
+        TailleBassin := calculeTailleBassin(Map, Col, Lig, Map[Col, Lig]);
+
+        // Stockage des 3 valeurs les plus grandes
+        for var i := 0 to 2 do
+          if TailleBassin > TailleBassinMax[i] then
+          begin
+            var
+            swap := TailleBassinMax[i];
+            TailleBassinMax[i] := TailleBassin;
+            TailleBassin := swap;
+          end;
+      end;
+
+  // Show answer
+  Reponse := TailleBassinMax[0] * TailleBassinMax[1] * TailleBassinMax[2];
   AfficheResultat(CJour, CExercice, Reponse);
 end;
 
@@ -1287,11 +1459,11 @@ end;
 
 constructor TJ4_Carte.Create;
 var
-  col, lig: integer;
+  Col, Lig: integer;
 begin
-  for col := 1 to 5 do
-    for lig := 1 to 5 do
-      FGrille[col, lig] := nil;
+  for Col := 1 to 5 do
+    for Lig := 1 to 5 do
+      FGrille[Col, Lig] := nil;
   FGagnante := false;
 end;
 
@@ -1313,41 +1485,41 @@ end;
 
 destructor TJ4_Carte.Destroy;
 var
-  col, lig: integer;
+  Col, Lig: integer;
 begin
-  for col := 1 to 5 do
-    for lig := 1 to 5 do
-      if (FGrille[col, lig] <> nil) then
-        FGrille[col, lig].Free;
+  for Col := 1 to 5 do
+    for Lig := 1 to 5 do
+      if (FGrille[Col, Lig] <> nil) then
+        FGrille[Col, Lig].Free;
   inherited;
 end;
 
 function TJ4_Carte.isColonneFinie(ACol: integer): boolean;
 var
-  lig: integer;
+  Lig: integer;
 begin
   result := false;
   if (ACol in [1 .. 5]) then
   begin
     result := true;
-    for lig := 1 to 5 do
-      result := result and (FGrille[ACol, lig] <> nil) and
-        FGrille[ACol, lig].FTire;
+    for Lig := 1 to 5 do
+      result := result and (FGrille[ACol, Lig] <> nil) and
+        FGrille[ACol, Lig].FTire;
   end;
 end;
 
 function TJ4_Carte.isGrilleGagnanteAvecNumero(ANumero: integer): boolean;
 var
-  col, lig: integer;
+  Col, Lig: integer;
 begin
   result := false;
-  for col := 1 to 5 do
-    for lig := 1 to 5 do
-      if (FGrille[col, lig] <> nil) and (FGrille[col, lig].FNumero = ANumero)
+  for Col := 1 to 5 do
+    for Lig := 1 to 5 do
+      if (FGrille[Col, Lig] <> nil) and (FGrille[Col, Lig].FNumero = ANumero)
       then
       begin
-        FGrille[col, lig].FTire := true;
-        if isLigneFinie(lig) or isColonneFinie(col) then
+        FGrille[Col, Lig].FTire := true;
+        if isLigneFinie(Lig) or isColonneFinie(Col) then
         begin
           result := true;
           FGagnante := true;
@@ -1358,15 +1530,15 @@ end;
 
 function TJ4_Carte.isLigneFinie(ALig: integer): boolean;
 var
-  col: integer;
+  Col: integer;
 begin
   result := false;
   if (ALig in [1 .. 5]) then
   begin
     result := true;
-    for col := 1 to 5 do
-      result := result and (FGrille[col, ALig] <> nil) and
-        FGrille[col, ALig].FTire;
+    for Col := 1 to 5 do
+      result := result and (FGrille[Col, ALig] <> nil) and
+        FGrille[Col, ALig].FTire;
   end;
 end;
 
@@ -1381,13 +1553,13 @@ end;
 
 function TJ4_Carte.TotalNumerosNonTires: integer;
 var
-  col, lig: integer;
+  Col, Lig: integer;
 begin
   result := 0;
-  for col := 1 to 5 do
-    for lig := 1 to 5 do
-      if (FGrille[col, lig] <> nil) and (not FGrille[col, lig].FTire) then
-        result := result + FGrille[col, lig].FNumero;
+  for Col := 1 to 5 do
+    for Lig := 1 to 5 do
+      if (FGrille[Col, Lig] <> nil) and (not FGrille[Col, Lig].FTire) then
+        result := result + FGrille[Col, Lig].FNumero;
 end;
 
 { TJ4_Case }
