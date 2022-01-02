@@ -47,6 +47,10 @@ type
     procedure Jour10_2;
     procedure Jour11_1;
     procedure Jour11_2;
+    procedure Jour12_1;
+    procedure Jour12_1_bis;
+    procedure Jour12_2;
+    procedure Jour12_2_bis;
     procedure TemplateJour;
 
     function Compare(const Left, Right: uint64): Integer;
@@ -60,7 +64,8 @@ implementation
 {$R *.dfm}
 
 Uses
-  System.RegularExpressions, System.IOUtils;
+  System.RegularExpressions, System.IOUtils, System.threading,
+  System.Diagnostics;
 
 procedure TForm1.AfficheResultat(Jour, Exercice: byte; Reponse: uint64);
 begin
@@ -110,37 +115,55 @@ begin
   // https://adventofcode.com/2021/day/1
   Jour01_1;
   Jour01_2;
+
   // https://adventofcode.com/2021/day/2
   Jour02_1;
   Jour02_2;
+
   // https://adventofcode.com/2021/day/3
   Jour03_1;
   Jour03_2;
+
   // https://adventofcode.com/2021/day/4
   Jour04_1;
   Jour04_2;
+
   // https://adventofcode.com/2021/day/5
   Jour05_1;
   Jour05_2;
+
   // https://adventofcode.com/2021/day/6
   Jour06_1;
   Jour06_2;
+
   // https://adventofcode.com/2021/day/7
   Jour07_1;
   Jour07_2;
+
   // https://adventofcode.com/2021/day/8
   Jour08_1;
   Jour08_2;
+
   // https://adventofcode.com/2021/day/9
   Jour09_1;
   Jour09_1_bis;
   Jour09_2;
+
   // https://adventofcode.com/2021/day/10
   Jour10_1;
   Jour10_2;
+
   // https://adventofcode.com/2021/day/11
-  Jour11_1;
-  Jour11_2;
+  // Jour11_1; // trop long pour le faire systématiquement
+  // Jour11_2; // TODO : voir comment l'optimiser (exemple : le faire une fois pour les 2 exercices)
+
+  // https://adventofcode.com/2021/day/12
+  // version avec chaînes de caractères
+  // Jour12_1;
+  // Jour12_2;
+  // version un peu optimisée avec des entiers au lieu des chaines de caractères
+//  Jour12_1_bis;
+//  Jour12_2_bis;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -1786,6 +1809,531 @@ begin
   AfficheResultat(CJour, CExercice, Reponse);
 end;
 
+procedure TForm1.Jour12_1;
+Const
+  CNumeroFichier = '12';
+  // 2 chiffres, en alpha
+  CJour = 12; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+
+type
+  TSorties = TDictionary<string, boolean>;
+  TSalles = TObjectDictionary<string, TSorties>;
+
+  function isPetite(Salle: string): boolean; inline;
+  begin
+    result := Salle = Salle.ToLower;
+  end;
+
+  procedure AjoutePassage(DeSalle, VersSalle: string; var grottes: TSalles);
+  begin
+    if VersSalle = 'start' then // On ne revient pas sur la salle de départ
+      exit;
+
+    if DeSalle = 'end' then // On ne revient pas depuis la salle de fin
+      exit;
+
+    if not grottes.ContainsKey(DeSalle) then
+      grottes.Add(DeSalle, TSorties.Create);
+    if not grottes[DeSalle].ContainsKey(VersSalle) then
+      grottes[DeSalle].Add(VersSalle, isPetite(VersSalle));
+  end;
+
+  function AjouteChemin(var chemins: tstringlist; grottes: TSalles;
+    DeSalle: string; CheminEnCours: string): string;
+  var
+    VersSalle: string;
+    isPetiteSalleEtDansChemin: boolean;
+  begin
+    if (DeSalle = 'end') then
+    begin
+      CheminEnCours := CheminEnCours + ' -> end';
+      if chemins.IndexOf(CheminEnCours) < 0 then
+        chemins.Add(CheminEnCours);
+    end
+    else
+      for VersSalle in grottes[DeSalle].keys do
+      begin
+        isPetiteSalleEtDansChemin := grottes[DeSalle][VersSalle] and
+          (CheminEnCours.IndexOf(' ' + VersSalle + ' ') >= 0);
+        if (not isPetiteSalleEtDansChemin) then
+          AjouteChemin(chemins, grottes, VersSalle, CheminEnCours + '-> ' +
+            DeSalle + ' ');
+      end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  grottes: TSalles;
+  chemins: tstringlist;
+  Temps: TStopWatch;
+begin
+  grottes := TSalles.Create;
+  try
+    // Remplissage de la liste des passages possibles
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin
+          var
+          Tab := Ligne.Split(['-']);
+          if (Length(Tab) = 2) then
+          begin
+            AjoutePassage(Tab[0], Tab[1], grottes);
+            AjoutePassage(Tab[1], Tab[0], grottes);
+          end;
+        end;
+      except
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    // Affichage de la liste des passages
+    // for var DeSalle in grottes.keys do
+    // for var VersSalle in grottes[DeSalle].keys do
+    // Memo1.Lines.Add(DeSalle + '->' + VersSalle + ' (' + grottes[DeSalle]
+    // [VersSalle].ToString + ')');
+
+    chemins := tstringlist.Create;
+    try
+      Temps.Start;
+      // Détermination des chemins possibles
+      AjouteChemin(chemins, grottes, 'start', '');
+      Temps.Stop;
+      Memo1.Lines.Add('Calculé en ' +
+        Temps.ElapsedMilliseconds.ToString + 'ms');
+
+      // Affichage de la liste des chemins disponibles
+      // for var ch in chemins do
+      // Memo1.Lines.Add(ch);
+
+      Reponse := chemins.Count;
+      AfficheResultat(CJour, CExercice, Reponse);
+    finally
+      chemins.Free;
+    end;
+  finally
+    grottes.Free;
+  end;
+end;
+
+procedure TForm1.Jour12_1_bis;
+Const
+  CNumeroFichier = '12';
+  // 2 chiffres, en alpha
+  CJour = 12; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+
+type
+  TSorties = TDictionary<Integer, boolean>;
+  TSalles = TObjectDictionary<Integer, TSorties>;
+  TNomSalles = tlist<string>;
+
+  function isPetite(Salle: string): boolean; inline;
+  begin
+    result := Salle = Salle.ToLower;
+  end;
+
+  procedure AjoutePassage(DeSalle, VersSalle: string; NomSalles: TNomSalles;
+    var grottes: TSalles);
+  var
+    idxDeSalle, idxVersSalle: Integer;
+  begin
+    if VersSalle = 'start' then // On ne revient pas sur la salle de départ
+      exit;
+
+    if DeSalle = 'end' then // On ne revient pas depuis la salle de fin
+      exit;
+
+    idxDeSalle := NomSalles.IndexOf(DeSalle);
+    if (idxDeSalle = -1) then
+      idxDeSalle := NomSalles.Add(DeSalle);
+
+    idxVersSalle := NomSalles.IndexOf(VersSalle);
+    if (idxVersSalle = -1) then
+      idxVersSalle := NomSalles.Add(VersSalle);
+
+    if not grottes.ContainsKey(idxDeSalle) then
+      grottes.Add(idxDeSalle, TSorties.Create);
+
+    if not grottes[idxDeSalle].ContainsKey(idxVersSalle) then
+      grottes[idxDeSalle].Add(idxVersSalle, isPetite(VersSalle));
+  end;
+
+  function AjouteChemin(chemins: tstringlist; grottes: TSalles;
+    NomDesSalles: TNomSalles; idxDeSalle: Integer;
+    CheminEnCours: tlist<Integer>; idxSalleDeFin: Integer): string;
+  var
+    idxVersSalle: Integer;
+    isPetiteSalleEtDansChemin: boolean;
+  begin
+    if (idxDeSalle = idxSalleDeFin) then
+    begin
+      var
+      chemin := '';
+      for var i := 0 to CheminEnCours.Count - 1 do
+        if chemin.IsEmpty then
+          chemin := NomDesSalles[CheminEnCours.ToArray[i]]
+        else
+          chemin := chemin + ',' + NomDesSalles[CheminEnCours.ToArray[i]];
+      chemin := chemin + ',end';
+      if chemins.IndexOf(chemin) < 0 then
+        chemins.Add(chemin);
+    end
+    else
+      for idxVersSalle in grottes[idxDeSalle].keys do
+      begin
+        isPetiteSalleEtDansChemin := grottes[idxDeSalle][idxVersSalle] and
+          (CheminEnCours.IndexOf(idxVersSalle) >= 0);
+        if (not isPetiteSalleEtDansChemin) then
+        begin
+          CheminEnCours.Add(idxDeSalle);
+          AjouteChemin(chemins, grottes, NomDesSalles, idxVersSalle,
+            CheminEnCours, idxSalleDeFin);
+          CheminEnCours.Delete(CheminEnCours.Count - 1);
+        end;
+      end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  grottes: TSalles;
+  chemins: tstringlist;
+  Temps: TStopWatch;
+  NomDesSalles: TNomSalles;
+  CheminEnCours: tlist<Integer>;
+begin
+  NomDesSalles := TNomSalles.Create;
+  try
+    grottes := TSalles.Create;
+    try
+      // Remplissage de la liste des passages possibles
+      repeat
+        Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+        try
+          if not Ligne.IsEmpty then
+          begin
+            var
+            Tab := Ligne.Split(['-']);
+            if (Length(Tab) = 2) then
+            begin
+              AjoutePassage(Tab[0], Tab[1], NomDesSalles, grottes);
+              AjoutePassage(Tab[1], Tab[0], NomDesSalles, grottes);
+            end;
+          end;
+        except
+        end;
+      until FinDeFichier;
+      FermeFichier;
+
+      // Affichage de la liste des passages
+      // for var DeSalle in grottes.keys do
+      // for var VersSalle in grottes[DeSalle].keys do
+      // Memo1.Lines.Add(DeSalle + '->' + VersSalle + ' (' + grottes[DeSalle]
+      // [VersSalle].ToString + ')');
+
+      chemins := tstringlist.Create;
+      try
+        // Détermination des chemins possibles
+        Temps.Start;
+        CheminEnCours := tlist<Integer>.Create;
+        try
+          AjouteChemin(chemins, grottes, NomDesSalles,
+            NomDesSalles.IndexOf('start'), CheminEnCours,
+            NomDesSalles.IndexOf('end'));
+        finally
+          CheminEnCours.Free;
+        end;
+        Temps.Stop;
+        Memo1.Lines.Add('Calculé en ' +
+          Temps.ElapsedMilliseconds.ToString + 'ms');
+
+        // Affichage de la liste des chemins disponibles
+        // for var ch in chemins do
+        // Memo1.Lines.Add(ch);
+
+        Reponse := chemins.Count;
+        AfficheResultat(CJour, CExercice, Reponse);
+      finally
+        chemins.Free;
+      end;
+    finally
+      grottes.Free;
+    end;
+  finally
+    NomDesSalles.Free;
+  end;
+end;
+
+procedure TForm1.Jour12_2;
+Const
+  CNumeroFichier = '12';
+  // 2 chiffres, en alpha
+  CJour = 12; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+
+type
+  TSorties = TDictionary<string, boolean>;
+  TSalles = TObjectDictionary<string, TSorties>;
+
+  function AjouteChemin(chemins: tstringlist; grottes: TSalles; DeSalle: string;
+    CheminEnCours: string; DejaDeuxFois: boolean): string;
+  var
+    VersSalle: string;
+    isPetiteSalleEtDansChemin: boolean;
+  begin
+    if (DeSalle = 'end') then
+    begin
+      CheminEnCours := CheminEnCours + ' -> end';
+      if chemins.IndexOf(CheminEnCours) < 0 then
+        chemins.Add(CheminEnCours);
+    end
+    else
+      for VersSalle in grottes[DeSalle].keys do
+      begin
+        isPetiteSalleEtDansChemin := grottes[DeSalle][VersSalle] and
+          (CheminEnCours.IndexOf(' ' + VersSalle + ' ') >= 0);
+        if (isPetiteSalleEtDansChemin and (not DejaDeuxFois)) then
+          AjouteChemin(chemins, grottes, VersSalle, CheminEnCours + '-> ' +
+            DeSalle + ' ', true)
+        else if (not isPetiteSalleEtDansChemin) then
+          AjouteChemin(chemins, grottes, VersSalle, CheminEnCours + '-> ' +
+            DeSalle + ' ', DejaDeuxFois);
+      end;
+  end;
+
+  function isPetite(Salle: string): boolean; inline;
+  begin
+    result := Salle = Salle.ToLower;
+  end;
+
+  procedure AjoutePassage(DeSalle, VersSalle: string; var grottes: TSalles);
+  begin
+    if VersSalle = 'start' then
+      // On ne revient pas sur la salle de départ
+      exit;
+
+    if DeSalle = 'end' then // On ne revient pas depuis la salle de fin
+      exit;
+
+    if not grottes.ContainsKey(DeSalle) then
+      grottes.Add(DeSalle, TSorties.Create);
+    if not grottes[DeSalle].ContainsKey(VersSalle) then
+      grottes[DeSalle].Add(VersSalle, isPetite(VersSalle));
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  grottes: TSalles;
+  chemins: tstringlist;
+begin
+  grottes := TSalles.Create;
+  try
+    // Remplissage de la liste des passages possibles
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin
+          var
+          Tab := Ligne.Split(['-']);
+          if (Length(Tab) = 2) then
+          begin
+            AjoutePassage(Tab[0], Tab[1], grottes);
+            AjoutePassage(Tab[1], Tab[0], grottes);
+          end;
+        end;
+      except
+      end;
+    until FinDeFichier;
+    FermeFichier;
+
+    // Affichage de la liste des passages
+    // for var DeSalle in grottes.keys do
+    // for var VersSalle in grottes[DeSalle].keys do
+    // Memo1.Lines.Add(DeSalle + '->' + VersSalle + ' (' + grottes[DeSalle]
+    // [VersSalle].ToString + ')');
+
+    chemins := tstringlist.Create;
+    try
+      // Détermination des chemins possibles
+      AjouteChemin(chemins, grottes, 'start', '', false);
+
+      // Affichage de la liste des chemins disponibles
+      // for var ch in chemins do
+      // Memo1.Lines.Add(ch);
+
+      Reponse := chemins.Count;
+      AfficheResultat(CJour, CExercice, Reponse);
+    finally
+      chemins.Free;
+    end;
+  finally
+    grottes.Free;
+  end;
+end;
+
+procedure TForm1.Jour12_2_bis;
+Const
+  CNumeroFichier = '12';
+  // 2 chiffres, en alpha
+  CJour = 12; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+
+type
+  TSorties = TDictionary<Integer, boolean>;
+  TSalles = TObjectDictionary<Integer, TSorties>;
+  TNomSalles = tlist<string>;
+
+  function isPetite(Salle: string): boolean; inline;
+  begin
+    result := Salle = Salle.ToLower;
+  end;
+
+  procedure AjoutePassage(DeSalle, VersSalle: string; NomSalles: TNomSalles;
+    var grottes: TSalles);
+  var
+    idxDeSalle, idxVersSalle: Integer;
+  begin
+    if VersSalle = 'start' then // On ne revient pas sur la salle de départ
+      exit;
+
+    if DeSalle = 'end' then // On ne revient pas depuis la salle de fin
+      exit;
+
+    idxDeSalle := NomSalles.IndexOf(DeSalle);
+    if (idxDeSalle = -1) then
+      idxDeSalle := NomSalles.Add(DeSalle);
+
+    idxVersSalle := NomSalles.IndexOf(VersSalle);
+    if (idxVersSalle = -1) then
+      idxVersSalle := NomSalles.Add(VersSalle);
+
+    if not grottes.ContainsKey(idxDeSalle) then
+      grottes.Add(idxDeSalle, TSorties.Create);
+
+    if not grottes[idxDeSalle].ContainsKey(idxVersSalle) then
+      grottes[idxDeSalle].Add(idxVersSalle, isPetite(VersSalle));
+  end;
+
+  function AjouteChemin(chemins: tstringlist; grottes: TSalles;
+    NomDesSalles: TNomSalles; idxDeSalle: Integer;
+    CheminEnCours: tlist<Integer>; idxSalleDeFin: Integer;
+    DejaDeuxFois: boolean): string;
+  var
+    idxVersSalle: Integer;
+    isPetiteSalleEtDansChemin: boolean;
+  begin
+    if (idxDeSalle = idxSalleDeFin) then
+    begin
+      var
+      chemin := '';
+      for var i := 0 to CheminEnCours.Count - 1 do
+        if chemin.IsEmpty then
+          chemin := NomDesSalles[CheminEnCours.ToArray[i]]
+        else
+          chemin := chemin + ',' + NomDesSalles[CheminEnCours.ToArray[i]];
+      chemin := chemin + ',end';
+      if chemins.IndexOf(chemin) < 0 then
+        chemins.Add(chemin);
+    end
+    else
+      for idxVersSalle in grottes[idxDeSalle].keys do
+      begin
+        isPetiteSalleEtDansChemin := grottes[idxDeSalle][idxVersSalle] and
+          (CheminEnCours.IndexOf(idxVersSalle) >= 0);
+        if (isPetiteSalleEtDansChemin and (not DejaDeuxFois)) then
+        begin
+          CheminEnCours.Add(idxDeSalle);
+          AjouteChemin(chemins, grottes, NomDesSalles, idxVersSalle,
+            CheminEnCours, idxSalleDeFin, true);
+          CheminEnCours.Delete(CheminEnCours.Count - 1);
+        end
+        else if (not isPetiteSalleEtDansChemin) then
+        begin
+          CheminEnCours.Add(idxDeSalle);
+          AjouteChemin(chemins, grottes, NomDesSalles, idxVersSalle,
+            CheminEnCours, idxSalleDeFin, DejaDeuxFois);
+          CheminEnCours.Delete(CheminEnCours.Count - 1);
+        end;
+      end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  grottes: TSalles;
+  chemins: tstringlist;
+  Temps: TStopWatch;
+  NomDesSalles: TNomSalles;
+  CheminEnCours: tlist<Integer>;
+begin
+  NomDesSalles := TNomSalles.Create;
+  try
+    grottes := TSalles.Create;
+    try
+      // Remplissage de la liste des passages possibles
+      repeat
+        Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+        try
+          if not Ligne.IsEmpty then
+          begin
+            var
+            Tab := Ligne.Split(['-']);
+            if (Length(Tab) = 2) then
+            begin
+              AjoutePassage(Tab[0], Tab[1], NomDesSalles, grottes);
+              AjoutePassage(Tab[1], Tab[0], NomDesSalles, grottes);
+            end;
+          end;
+        except
+        end;
+      until FinDeFichier;
+      FermeFichier;
+
+      // Affichage de la liste des passages
+      // for var DeSalle in grottes.keys do
+      // for var VersSalle in grottes[DeSalle].keys do
+      // Memo1.Lines.Add(DeSalle + '->' + VersSalle + ' (' + grottes[DeSalle]
+      // [VersSalle].ToString + ')');
+
+      chemins := tstringlist.Create;
+      try
+        // Détermination des chemins possibles
+        Temps.Start;
+        CheminEnCours := tlist<Integer>.Create;
+        try
+          AjouteChemin(chemins, grottes, NomDesSalles,
+            NomDesSalles.IndexOf('start'), CheminEnCours,
+            NomDesSalles.IndexOf('end'), false);
+        finally
+          CheminEnCours.Free;
+        end;
+        Temps.Stop;
+        Memo1.Lines.Add('Calculé en ' +
+          Temps.ElapsedMilliseconds.ToString + 'ms');
+
+        // Affichage de la liste des chemins disponibles
+        // for var ch in chemins do
+        // Memo1.Lines.Add(ch);
+
+        Reponse := chemins.Count;
+        AfficheResultat(CJour, CExercice, Reponse);
+      finally
+        chemins.Free;
+      end;
+    finally
+      grottes.Free;
+    end;
+  finally
+    NomDesSalles.Free;
+  end;
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
@@ -1805,6 +2353,7 @@ var
   Ligne: string;
   Reponse: uint64;
 begin
+  Reponse := 0;
   PremiereLigneTraitee := false;
   repeat
     Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
