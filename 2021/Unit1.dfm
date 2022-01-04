@@ -23,8 +23,14 @@ object Form1: TForm1
     Margins.Right = 2
     Margins.Bottom = 2
     Align = alClient
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier'
+    Font.Style = []
     Lines.Strings = (
       'Memo1')
+    ParentFont = False
     TabOrder = 0
   end
 end

@@ -51,6 +51,8 @@ type
     procedure Jour12_1_bis;
     procedure Jour12_2;
     procedure Jour12_2_bis;
+    procedure Jour13_1;
+    procedure Jour13_2;
     procedure TemplateJour;
 
     function Compare(const Left, Right: uint64): Integer;
@@ -162,8 +164,13 @@ begin
   // Jour12_1;
   // Jour12_2;
   // version un peu optimisée avec des entiers au lieu des chaines de caractères
-//  Jour12_1_bis;
-//  Jour12_2_bis;
+  // Jour12_1_bis;
+  // Jour12_2_bis;
+
+  // https://adventofcode.com/2021/day/13
+  Jour13_1;
+  Jour13_2;
+
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -2334,6 +2341,179 @@ begin
   end;
 end;
 
+type
+  TJour13Coord = class
+  public
+    x, y: Integer;
+    constructor Create(AX, AY: Integer);
+  end;
+
+  TJour13Coords = class(TObjectList<TJour13Coord>)
+  public
+    procedure Ajoute(AX, AY: Integer);
+  end;
+
+procedure TForm1.Jour13_1;
+Const
+  CNumeroFichier = '13';
+  // 2 chiffres, en alpha
+  CJour = 13; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+  procedure PlieEnColonne(Feuille: TJour13Coords; x: Integer);
+  begin
+    for var i := Feuille.Count - 1 downto 0 do
+      if Feuille[i].x = x then
+        Feuille.Delete(i)
+      else if Feuille[i].x > x then
+      begin
+        Feuille.Ajoute(x * 2 - Feuille[i].x, Feuille[i].y);
+        Feuille.Delete(i);
+      end;
+  end;
+  procedure PlieEnLigne(Feuille: TJour13Coords; y: Integer);
+  begin
+    for var i := Feuille.Count - 1 downto 0 do
+      if Feuille[i].y = y then
+        Feuille.Delete(i)
+      else if Feuille[i].y > y then
+      begin
+        Feuille.Ajoute(Feuille[i].x, y * 2 - Feuille[i].y);
+        Feuille.Delete(i);
+      end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Feuille: TJour13Coords;
+begin
+  Feuille := TJour13Coords.Create;
+  try
+    Reponse := 0;
+
+    // Récupération des points (coordonnées) jusqu'à ligne vide
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin
+          var
+          Tab := Ligne.Split([',']);
+          if (Length(Tab) = 2) then
+            Feuille.Ajoute(Tab[0].ToInteger, Tab[1].ToInteger);
+        end;
+      except
+
+      end;
+    until FinDeFichier or Ligne.IsEmpty;
+
+    if not FinDeFichier then
+    begin
+      // Lecture de la première ligne de pliage
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      if Ligne.StartsWith('fold along x=') then // pliage vertical
+        PlieEnColonne(Feuille, Ligne.Substring('fold along x='.Length)
+          .ToInteger)
+      else if Ligne.StartsWith('fold along y=') then // pliage horizontal
+        PlieEnLigne(Feuille, Ligne.Substring('fold along y='.Length).ToInteger);
+    end;
+
+    // Nombre de points restants après pliage
+    Reponse := Feuille.Count;
+
+    FermeFichier;
+    AfficheResultat(CJour, CExercice, Reponse);
+  finally
+    Feuille.Free;
+  end;
+end;
+
+procedure TForm1.Jour13_2;
+Const
+  CNumeroFichier = '13';
+  // 2 chiffres, en alpha
+  CJour = 13; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+  procedure PlieEnColonne(Feuille: TJour13Coords; x: Integer);
+  begin
+    for var i := Feuille.Count - 1 downto 0 do
+      if Feuille[i].x = x then
+        Feuille.Delete(i)
+      else if Feuille[i].x > x then
+      begin
+        Feuille.Ajoute(x * 2 - Feuille[i].x, Feuille[i].y);
+        Feuille.Delete(i);
+      end;
+  end;
+  procedure PlieEnLigne(Feuille: TJour13Coords; y: Integer);
+  begin
+    for var i := Feuille.Count - 1 downto 0 do
+      if Feuille[i].y = y then
+        Feuille.Delete(i)
+      else if Feuille[i].y > y then
+      begin
+        Feuille.Ajoute(Feuille[i].x, y * 2 - Feuille[i].y);
+        Feuille.Delete(i);
+      end;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Feuille: TJour13Coords;
+  Resultat: array of string;
+begin
+  Feuille := TJour13Coords.Create;
+  try
+    Reponse := 0;
+
+    // Récupération des points (coordonnées) jusqu'à ligne vide
+    repeat
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      try
+        if not Ligne.IsEmpty then
+        begin
+          var
+          Tab := Ligne.Split([',']);
+          if (Length(Tab) = 2) then
+            Feuille.Ajoute(Tab[0].ToInteger, Tab[1].ToInteger);
+        end;
+      except
+
+      end;
+    until FinDeFichier or Ligne.IsEmpty;
+
+    while not FinDeFichier do
+    begin
+      // Lecture de la première ligne de pliage
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+      if Ligne.StartsWith('fold along x=') then // pliage vertical
+        PlieEnColonne(Feuille, Ligne.Substring('fold along x='.Length)
+          .ToInteger)
+      else if Ligne.StartsWith('fold along y=') then // pliage horizontal
+        PlieEnLigne(Feuille, Ligne.Substring('fold along y='.Length).ToInteger);
+    end;
+
+    for var coord in Feuille do
+    begin
+      if (coord.y >= Length(Resultat)) then
+        setlength(Resultat, coord.y + 1);
+      if (Resultat[coord.y].Length <= coord.x) then
+        for var i := Resultat[coord.y].Length to coord.x do
+          Resultat[coord.y] := Resultat[coord.y] + '_';
+      Resultat[coord.y][coord.x+1] := '#'; // Chaîne à l'ancienne, donc commence à 1 (depuis 10.4 Sydney)
+    end;
+
+    FermeFichier;
+    AfficheResultat(CJour, CExercice, Reponse);
+
+    for var i := 0 to Length(Resultat) - 1 do
+      Memo1.Lines.Add(Resultat[i]);
+  finally
+    Feuille.Free;
+  end;
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
@@ -2505,6 +2685,33 @@ begin
   if not items[x].ContainsKey(y) then
     items[x].Add(y, 0);
   items[x].items[y] := items[x].items[y] + 1;
+end;
+
+{ TJour13Coords }
+
+procedure TJour13Coords.Ajoute(AX, AY: Integer);
+var
+  coord: TJour13Coord;
+  ExisteDeja: boolean;
+begin
+  ExisteDeja := false;
+  for coord in self do
+    if (coord.x = AX) and (coord.y = AY) then
+    begin
+      ExisteDeja := true;
+      break;
+    end;
+  if not ExisteDeja then
+    Add(TJour13Coord.Create(AX, AY));
+end;
+
+{ TJour13Coord }
+
+constructor TJour13Coord.Create(AX, AY: Integer);
+begin
+  inherited Create;
+  x := AX;
+  y := AY;
 end;
 
 end.
