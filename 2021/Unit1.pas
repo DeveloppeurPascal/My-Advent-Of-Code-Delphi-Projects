@@ -53,6 +53,8 @@ type
     procedure Jour12_2_bis;
     procedure Jour13_1;
     procedure Jour13_2;
+    procedure Jour14_1;
+    procedure Jour14_2;
     procedure TemplateJour;
 
     function Compare(const Left, Right: uint64): Integer;
@@ -115,45 +117,45 @@ procedure TForm1.FormShow(Sender: TObject);
 begin
   Memo1.Lines.Clear;
   // https://adventofcode.com/2021/day/1
-  Jour01_1;
-  Jour01_2;
+  // Jour01_1;
+  // Jour01_2;
 
   // https://adventofcode.com/2021/day/2
-  Jour02_1;
-  Jour02_2;
+  // Jour02_1;
+  // Jour02_2;
 
   // https://adventofcode.com/2021/day/3
-  Jour03_1;
-  Jour03_2;
+  // Jour03_1;
+  // Jour03_2;
 
   // https://adventofcode.com/2021/day/4
-  Jour04_1;
-  Jour04_2;
+  // Jour04_1;
+  // Jour04_2;
 
   // https://adventofcode.com/2021/day/5
-  Jour05_1;
-  Jour05_2;
+  // Jour05_1;
+  // Jour05_2;
 
   // https://adventofcode.com/2021/day/6
-  Jour06_1;
-  Jour06_2;
+  // Jour06_1;
+  // Jour06_2;
 
   // https://adventofcode.com/2021/day/7
-  Jour07_1;
-  Jour07_2;
+  // Jour07_1;
+  // Jour07_2;
 
   // https://adventofcode.com/2021/day/8
-  Jour08_1;
-  Jour08_2;
+  // Jour08_1;
+  // Jour08_2;
 
   // https://adventofcode.com/2021/day/9
-  Jour09_1;
-  Jour09_1_bis;
-  Jour09_2;
+  // Jour09_1;
+  // Jour09_1_bis;
+  // Jour09_2;
 
   // https://adventofcode.com/2021/day/10
-  Jour10_1;
-  Jour10_2;
+  // Jour10_1;
+  // Jour10_2;
 
   // https://adventofcode.com/2021/day/11
   // Jour11_1; // trop long pour le faire systématiquement
@@ -163,14 +165,18 @@ begin
   // version avec chaînes de caractères
   // Jour12_1;
   // Jour12_2;
+
   // version un peu optimisée avec des entiers au lieu des chaines de caractères
   // Jour12_1_bis;
   // Jour12_2_bis;
 
   // https://adventofcode.com/2021/day/13
-  Jour13_1;
-  Jour13_2;
+  // Jour13_1;
+  // Jour13_2;
 
+  // https://adventofcode.com/2021/day/14
+  Jour14_1;
+  Jour14_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -2501,7 +2507,8 @@ begin
       if (Resultat[coord.y].Length <= coord.x) then
         for var i := Resultat[coord.y].Length to coord.x do
           Resultat[coord.y] := Resultat[coord.y] + '_';
-      Resultat[coord.y][coord.x+1] := '#'; // Chaîne à l'ancienne, donc commence à 1 (depuis 10.4 Sydney)
+      Resultat[coord.y][coord.x + 1] := '#';
+      // Chaîne à l'ancienne, donc commence à 1 (depuis 10.4 Sydney)
     end;
 
     FermeFichier;
@@ -2511,6 +2518,246 @@ begin
       Memo1.Lines.Add(Resultat[i]);
   finally
     Feuille.Free;
+  end;
+end;
+
+procedure TForm1.Jour14_1;
+Const
+  CNumeroFichier = '14';
+  // 2 chiffres, en alpha
+  CJour = 14; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+
+  procedure IncrementeLettre(nb: TDictionary<char, uint64>; Lettre: char);
+  begin
+    if not nb.ContainsKey(Lettre) then
+      nb.Add(Lettre, 1)
+    else
+      nb[Lettre] := nb[Lettre] + 1;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Polymere: string;
+  Remplacements: TDictionary<string, char>;
+  nb: TDictionary<char, uint64>;
+  ValMax, ValMin: uint64;
+  NumChar: uint64;
+  Paire: string;
+  LettreAjoutee: char;
+begin
+  nb := TDictionary<char, uint64>.Create;
+  try
+    Remplacements := TDictionary<string, char>.Create;
+    try
+      // Ligne de départ : polymère à son état initial
+      Polymere := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+      // Ligne de séparation
+      Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+      // Liste des remplacements
+      repeat
+        Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+        try
+          if not Ligne.IsEmpty then
+            Remplacements.Add(Ligne.Substring(0, 2),
+              Ligne.Chars[Ligne.Length - 1]);
+        except
+
+        end;
+      until FinDeFichier;
+      FermeFichier;
+
+      // Calcul des occurences de départ
+      for var i := 0 to Polymere.Length - 1 do
+        IncrementeLettre(nb, Polymere.Chars[i]);
+
+      // Polymérisation
+      for var i := 1 to 10 do
+      begin
+        NumChar := 0;
+        while (NumChar < Polymere.Length - 1) do
+        begin
+          Paire := Polymere.Substring(NumChar, 2);
+          if Remplacements.ContainsKey(Paire) then
+          begin
+            LettreAjoutee := Remplacements[Paire];
+            Polymere.Insert(NumChar + 1, LettreAjoutee);
+            IncrementeLettre(nb, LettreAjoutee);
+            inc(NumChar, 2);
+          end
+          else
+            inc(NumChar, 1);
+        end;
+        if i < 5 then
+          Memo1.Lines.Add(Polymere);
+      end;
+
+      // Calcul du min et max des lettres utilisées
+      ValMin := high(uint64);
+      ValMax := low(uint64);
+      for var Lettre in nb.keys do
+      begin
+        if nb[Lettre] < ValMin then
+        begin
+          if (ValMin > ValMax) and (ValMin < high(uint64)) then
+            ValMax := ValMin;
+          ValMin := nb[Lettre];
+        end
+        else if nb[Lettre] > ValMax then
+        begin
+          if (ValMax < ValMin) and (ValMax > low(uint64)) then
+            ValMin := ValMax;
+          ValMax := nb[Lettre];
+        end;
+      end;
+
+      Reponse := ValMax - ValMin;
+      AfficheResultat(CJour, CExercice, Reponse);
+    finally
+      Remplacements.Free;
+    end;
+  finally
+    nb.Free;
+  end;
+end;
+
+procedure TForm1.Jour14_2;
+Const
+  CNumeroFichier = '14';
+  // 2 chiffres, en alpha
+  CJour = 14; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+
+  procedure IncrementeLettre(nb: TDictionary<char, uint64>; Lettre: char;
+    Increment: uint64 = 1);
+  begin
+    if not nb.ContainsKey(Lettre) then
+      nb.Add(Lettre, Increment)
+    else
+      nb[Lettre] := nb[Lettre] + Increment;
+  end;
+
+  procedure AjoutePaire(PairesEnCours: TDictionary<string, uint64>;
+    Paire: string; Increment: uint64 = 1);
+  begin
+    if not PairesEnCours.ContainsKey(Paire) then
+      PairesEnCours.Add(Paire, Increment)
+    else
+      PairesEnCours[Paire] := PairesEnCours[Paire] + Increment;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Polymere: string;
+  Remplacements: TDictionary<string, char>;
+  nb: TDictionary<char, uint64>;
+  ValMax, ValMin: uint64;
+  NumChar: uint64;
+  Paire: string;
+  LettreAjoutee: char;
+  PairesEnCours, NouvellesPaires, SwapPaires: TDictionary<string, uint64>;
+begin
+  NouvellesPaires := TDictionary<string, uint64>.Create;
+  try
+    PairesEnCours := TDictionary<string, uint64>.Create;
+    try
+      nb := TDictionary<char, uint64>.Create;
+      try
+        Remplacements := TDictionary<string, char>.Create;
+        try
+          // Ligne de départ : polymère à son état initial
+          Polymere := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+          // Ligne de séparation
+          Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+          // Liste des remplacements
+          repeat
+            Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+            try
+              if not Ligne.IsEmpty then
+                Remplacements.Add(Ligne.Substring(0, 2),
+                  Ligne.Chars[Ligne.Length - 1]);
+            except
+
+            end;
+          until FinDeFichier;
+          FermeFichier;
+
+          // Calcul des occurences de départ
+          for var i := 0 to Polymere.Length - 1 do
+            IncrementeLettre(nb, Polymere.Chars[i]);
+
+          // Découpe le polymère en paires
+          PairesEnCours.Clear;
+          for var i := 0 to Polymere.Length - 2 do
+            AjoutePaire(PairesEnCours, Polymere.Substring(i, 2));
+
+          // Polymérisation
+          for var i := 1 to 40 do
+          begin
+            // Nouveau tour, pas de paires à ajouter pour le moment
+            NouvellesPaires.Clear;
+
+            // Parcours des paires existentes pour création de la nouvelle chaine du polèmere
+            for Paire in PairesEnCours.keys do
+            begin
+              if Remplacements.ContainsKey(Paire) then
+              begin
+                LettreAjoutee := Remplacements[Paire];
+                AjoutePaire(NouvellesPaires, Paire.Chars[0] + LettreAjoutee,
+                  PairesEnCours[Paire]);
+                AjoutePaire(NouvellesPaires, LettreAjoutee + Paire.Chars[1],
+                  PairesEnCours[Paire]);
+                IncrementeLettre(nb, LettreAjoutee, PairesEnCours[Paire]);
+                inc(NumChar, 2);
+              end
+              else
+                inc(NumChar, 1);
+            end;
+
+            // On a finit avec le polymère actuel, on bascule sur le nouveau
+            SwapPaires := PairesEnCours;
+            PairesEnCours := NouvellesPaires;
+            NouvellesPaires := SwapPaires;
+          end;
+
+          // Calcul du min et max des lettres utilisées
+          ValMin := high(uint64);
+          ValMax := low(uint64);
+          for var Lettre in nb.keys do
+          begin
+            if nb[Lettre] < ValMin then
+            begin
+              if (ValMin > ValMax) and (ValMin < high(uint64)) then
+                ValMax := ValMin;
+              ValMin := nb[Lettre];
+            end
+            else if nb[Lettre] > ValMax then
+            begin
+              if (ValMax < ValMin) and (ValMax > low(uint64)) then
+                ValMin := ValMax;
+              ValMax := nb[Lettre];
+            end;
+          end;
+
+          Reponse := ValMax - ValMin;
+          AfficheResultat(CJour, CExercice, Reponse);
+        finally
+          Remplacements.Free;
+        end;
+      finally
+        nb.Free;
+      end;
+    finally
+      PairesEnCours.Free;
+    end;
+  finally
+    NouvellesPaires.Free;
   end;
 end;
 
@@ -2713,5 +2960,9 @@ begin
   x := AX;
   y := AY;
 end;
+
+initialization
+
+ReportMemoryLeaksOnShutdown := true;
 
 end.
