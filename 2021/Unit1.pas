@@ -55,6 +55,8 @@ type
     procedure Jour13_2;
     procedure Jour14_1;
     procedure Jour14_2;
+    procedure Jour15_1;
+    procedure Jour15_2;
     procedure TemplateJour;
 
     function Compare(const Left, Right: uint64): Integer;
@@ -175,8 +177,12 @@ begin
   // Jour13_2;
 
   // https://adventofcode.com/2021/day/14
-  Jour14_1;
-  Jour14_2;
+  // Jour14_1;
+  // Jour14_2;
+
+  // https://adventofcode.com/2021/day/15
+  Jour15_1;
+  Jour15_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -2348,15 +2354,23 @@ begin
 end;
 
 type
-  TJour13Coord = class
+  TCoord = class
   public
     x, y: Integer;
     constructor Create(AX, AY: Integer);
   end;
 
-  TJour13Coords = class(TObjectList<TJour13Coord>)
+  TCoords = class(TObjectList<TCoord>)
   public
+    /// <summary>
+    /// Ajoute les coordonnées à la liste si elles n'y sont pas encore.
+    /// </summary>
     procedure Ajoute(AX, AY: Integer);
+
+    /// <summary>
+    /// Retourne True si la liste contient déjà un élément à ces coordonnées
+    /// </summary>
+    function ContientCoordonnees(AX, AY: Integer): boolean;
   end;
 
 procedure TForm1.Jour13_1;
@@ -2365,7 +2379,7 @@ Const
   // 2 chiffres, en alpha
   CJour = 13; // Numéro du jour
   CExercice = 1; // Numéro exercice
-  procedure PlieEnColonne(Feuille: TJour13Coords; x: Integer);
+  procedure PlieEnColonne(Feuille: TCoords; x: Integer);
   begin
     for var i := Feuille.Count - 1 downto 0 do
       if Feuille[i].x = x then
@@ -2376,7 +2390,7 @@ Const
         Feuille.Delete(i);
       end;
   end;
-  procedure PlieEnLigne(Feuille: TJour13Coords; y: Integer);
+  procedure PlieEnLigne(Feuille: TCoords; y: Integer);
   begin
     for var i := Feuille.Count - 1 downto 0 do
       if Feuille[i].y = y then
@@ -2391,9 +2405,9 @@ Const
 var
   Ligne: string;
   Reponse: uint64;
-  Feuille: TJour13Coords;
+  Feuille: TCoords;
 begin
-  Feuille := TJour13Coords.Create;
+  Feuille := TCoords.Create;
   try
     Reponse := 0;
 
@@ -2440,7 +2454,7 @@ Const
   // 2 chiffres, en alpha
   CJour = 13; // Numéro du jour
   CExercice = 2; // Numéro exercice
-  procedure PlieEnColonne(Feuille: TJour13Coords; x: Integer);
+  procedure PlieEnColonne(Feuille: TCoords; x: Integer);
   begin
     for var i := Feuille.Count - 1 downto 0 do
       if Feuille[i].x = x then
@@ -2451,7 +2465,7 @@ Const
         Feuille.Delete(i);
       end;
   end;
-  procedure PlieEnLigne(Feuille: TJour13Coords; y: Integer);
+  procedure PlieEnLigne(Feuille: TCoords; y: Integer);
   begin
     for var i := Feuille.Count - 1 downto 0 do
       if Feuille[i].y = y then
@@ -2466,10 +2480,10 @@ Const
 var
   Ligne: string;
   Reponse: uint64;
-  Feuille: TJour13Coords;
+  Feuille: TCoords;
   Resultat: array of string;
 begin
-  Feuille := TJour13Coords.Create;
+  Feuille := TCoords.Create;
   try
     Reponse := 0;
 
@@ -2761,6 +2775,329 @@ begin
   end;
 end;
 
+// procedure TForm1.Jour15_1;
+// Const
+// CNumeroFichier = '15';
+// // 2 chiffres, en alpha
+// CJour = 15; // Numéro du jour
+// CExercice = 1; // Numéro exercice
+// type
+// TChitons = array of array of byte;
+//
+// procedure ChercheChemin(x, y: Integer; Chitons: TChitons;
+// CheminActuel: TCoords; ActualRiskLevel: uint64; var LowerRiskLevel: uint64);
+// var
+// NiveauDeRisque: byte;
+// begin
+// // si coordonnées hors grille, on ne fait rien
+// if (x < 0) or (y < 0) or (x >= Length(Chitons[0])) or (y >= Length(Chitons))
+// then
+// exit;
+// // si la case demandée est dans la liste déjà parcourrue pour ce chemin, on ne fait rien
+// if (CheminActuel.ContientCoordonnees(x, y)) then
+// exit;
+// // On vérifie le risque de ce chemin par rapport au risque du plus faible actuel
+// NiveauDeRisque := Chitons[y][x];
+// if (ActualRiskLevel + NiveauDeRisque < LowerRiskLevel) then
+// begin
+// // Niveau de risque actuel inférieur au plus petit, on peut continuer à chercher la case suivante
+// if (x = Length(Chitons[0]) - 1) and (y = Length(Chitons) - 1) then
+// begin // On a atteint notre dernière case, on est sur le nouveau plus court chemin
+// LowerRiskLevel := ActualRiskLevel + NiveauDeRisque;
+// end
+// else
+// begin // On est sur une case de la grille, on continue avec les suivantes
+// CheminActuel.Ajoute(x, y);
+// ChercheChemin(x + 1, y, Chitons, CheminActuel,
+// ActualRiskLevel + NiveauDeRisque, LowerRiskLevel);
+// ChercheChemin(x, y + 1, Chitons, CheminActuel,
+// ActualRiskLevel + NiveauDeRisque, LowerRiskLevel);
+// ChercheChemin(x - 1, y, Chitons, CheminActuel,
+// ActualRiskLevel + NiveauDeRisque, LowerRiskLevel);
+// ChercheChemin(x, y - 1, Chitons, CheminActuel,
+// ActualRiskLevel + NiveauDeRisque, LowerRiskLevel);
+// CheminActuel.Delete(CheminActuel.Count - 1);
+// end;
+// end;
+// end;
+//
+// var
+// Ligne: string;
+// Reponse: uint64;
+// Chitons: TChitons;
+// CheminActuel: TCoords; // liste de coordonnées (X,Y)
+// begin
+// CheminActuel := TCoords.Create;
+// try
+//
+// // Stockage de la grille de travail
+// repeat
+// Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+// try
+// if not Ligne.IsEmpty then
+// begin
+// // ajout d'une ligne
+// setlength(Chitons, Length(Chitons) + 1);
+//
+// // nb de colonnes dans la ligne
+// setlength(Chitons[Length(Chitons) - 1], Ligne.Length);
+//
+// for var i := 1 to Ligne.Length do
+// Chitons[Length(Chitons) - 1][i - 1] := strtoint(Ligne[i]);
+// // Chitons[Length(Chitons) - 1][i - 1] := ord(Ligne[i]) - 48;
+// // 48 = ord('0');
+// end;
+// except
+//
+// end;
+// until FinDeFichier;
+// FermeFichier;
+//
+// // La case de départ (x,y)=(0,0) ne compte pas, donc risk level = 0
+// Chitons[0][0] := 0;
+//
+// // Recherche du chemin le plus court avec stockage de son "risque"
+// Reponse := high(uint64);
+// CheminActuel.Clear;
+// ChercheChemin(0, 0, Chitons, CheminActuel, 0, Reponse);
+//
+// // Affichage du résultat calculé
+// AfficheResultat(CJour, CExercice, Reponse);
+// finally
+// CheminActuel.Free;
+// end;
+// end;
+
+procedure TForm1.Jour15_1;
+Const
+  CNumeroFichier = '15';
+  // 2 chiffres, en alpha
+  CJour = 15; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+  CValMax = high(uint64) - 10; // (maxInt - maxRisk)
+type
+  TChitons = array of array of uint64;
+var
+  Ligne: string;
+  Reponse: uint64;
+  Risk, Chitons: TChitons;
+  a, b, c, d, z: uint64;
+  i, x, y: uint64;
+  PrevRisk0: uint64;
+begin
+  // Solution provenant de
+  // https://github.com/mikewarot/Advent_of_Code_in_Pascal/blob/master/2021/advent2021_15a.lpr
+  //
+  // algorythme utilisé : Dijkstra
+  // https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
+
+  // Stockage de la grille de travail
+  repeat
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+    try
+      if not Ligne.IsEmpty then
+      begin
+        // ajout d'une ligne
+        setlength(Chitons, Length(Chitons) + 1);
+
+        // nb de colonnes dans la ligne
+        setlength(Chitons[Length(Chitons) - 1], Ligne.Length);
+
+        for i := 1 to Ligne.Length do
+          Chitons[Length(Chitons) - 1][i - 1] := strtoint(Ligne[i]);
+        // Chitons[Length(Chitons) - 1][i - 1] := ord(Ligne[i]) - 48;
+        // 48 = ord('0');
+      end;
+    except
+
+    end;
+  until FinDeFichier;
+  FermeFichier;
+
+  // Initialisation du tableau des valeurs de risque
+  setlength(Risk, Length(Chitons));
+  for y := 0 to Length(Risk) - 1 do
+  begin
+    setlength(Risk[y], Length(Chitons[0]));
+    for x := 0 to Length(Risk[y]) - 1 do
+      Risk[y][x] := CValMax;
+  end;
+
+  // Le risque de la case finale prend la valeur de son risque
+  Risk[Length(Risk) - 1][Length(Risk[0]) - 1] := Chitons[Length(Chitons) - 1]
+    [Length(Chitons[0]) - 1];
+
+  // Chaque boucle déplace le risque calculé depuis la case finale (en bas à droite) d'un cran vers la gauche et/ou vers le haut.
+  // On arrête de boucler lorsque la case d'arrivée a un risque stable deux boucles d'affilée.
+  PrevRisk0 := CValMax;
+  while ((Risk[0][0] = CValMax) or (Risk[0][0] <> PrevRisk0)) do
+  begin
+    PrevRisk0 := Risk[0][0];
+    // Memo1.Lines.Add(i.ToString + ' ' + Risk[0, 0].ToString);
+    for y := 0 to Length(Risk) - 1 do
+      for x := 0 to Length(Risk[y]) - 1 do
+      begin
+        // Chaque case du tableau des risques prend son risque officiel ajouté
+        // la valeur de risque (calculé) de la case adjacente la plus faible
+        a := CValMax;
+        if x < Length(Risk[y]) - 1 then
+          a := Risk[y, x + 1] + Chitons[y, x];
+        b := CValMax;
+        if y < Length(Risk) - 1 then
+          b := Risk[y + 1, x] + Chitons[y, x];
+        c := CValMax;
+        if x > 0 then
+          c := Risk[y, x - 1] + Chitons[y, x];
+        d := CValMax;
+        if y > 0 then
+          d := Risk[y - 1, x] + Chitons[y, x];
+        z := CValMax;
+        if a < z then
+          z := a;
+        if b < z then
+          z := b;
+        if c < z then
+          z := c;
+        if d < z then
+          z := d;
+        if (x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1) then
+          z := Chitons[y, x];
+        Risk[y, x] := z;
+      end;
+  end;
+
+  // On prend le risque minimum total rapatrié depuis la case de fin moins celui de la case de début qu'on ne doit pas comptabiliser
+  Reponse := Risk[0, 0] - Chitons[0, 0];
+
+  // Affichage du résultat calculé
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour15_2;
+Const
+  CNumeroFichier = '15';
+  // 2 chiffres, en alpha
+  CJour = 15; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+  CValMax = high(uint64) - 10; // (maxInt - maxRisk)
+type
+  TChitons = array of array of uint64;
+var
+  lignes: tstringlist;
+  Reponse: uint64;
+  Risk, Chitons: TChitons;
+  a, b, c, d, z: uint64;
+  i, x, y: uint64;
+  PrevRisk0: uint64;
+  LargeurLigne, LargeurGrille, NbLignes, HauteurGrille: uint64;
+begin
+  // Chargement du fichier
+  lignes := tstringlist.Create;
+  try
+    lignes.LoadFromFile('..\..\input-' + CNumeroFichier + '.txt');
+
+    // Définition de la taille de la grille de risques des chitons
+    LargeurLigne := lignes[0].Length;
+    LargeurGrille := LargeurLigne * 5;
+
+    // Chargement de la grille (première série de lignes)
+    HauteurGrille := 0;
+    NbLignes := 0;
+    for y := 0 to lignes.Count - 1 do
+      if not lignes[y].IsEmpty then
+      begin
+        inc(HauteurGrille);
+        inc(NbLignes);
+        setlength(Chitons, HauteurGrille);
+        setlength(Chitons[HauteurGrille - 1], LargeurGrille);
+        for x := 0 to LargeurGrille - 1 do
+          if (x >= LargeurLigne) then
+          begin
+            if Chitons[y][x - LargeurLigne] = 9 then
+              Chitons[y][x] := 1
+            else
+              Chitons[y][x] := Chitons[y][x - LargeurLigne] + 1;
+          end
+          else
+            Chitons[y][x] := strtoint(lignes[y].Chars[x]);
+      end;
+
+    // extrapolation des 4 séries de lignes suivantes à partir de la première série
+    while (HauteurGrille < NbLignes * 5) do
+    begin
+      inc(HauteurGrille);
+      setlength(Chitons, HauteurGrille);
+      setlength(Chitons[HauteurGrille - 1], LargeurGrille);
+      for x := 0 to LargeurGrille - 1 do
+        if Chitons[(HauteurGrille - 1) - NbLignes][x] = 9 then
+          Chitons[HauteurGrille - 1][x] := 1
+        else
+          Chitons[HauteurGrille - 1][x] :=
+            Chitons[(HauteurGrille - 1) - NbLignes][x] + 1;
+    end;
+  finally
+    lignes.Free;
+  end;
+
+  // Initialisation du tableau des valeurs de risque
+  setlength(Risk, HauteurGrille);
+  for y := 0 to HauteurGrille - 1 do
+  begin
+    setlength(Risk[y], LargeurGrille);
+    for x := 0 to LargeurGrille - 1 do
+      Risk[y][x] := CValMax;
+  end;
+
+  // Le risque de la case finale prend la valeur de son risque
+  Risk[HauteurGrille - 1][LargeurGrille - 1] := Chitons[HauteurGrille - 1]
+    [LargeurGrille - 1];
+
+  // Chaque boucle déplace le risque calculé depuis la case finale (en bas à droite) d'un cran vers la gauche et/ou vers le haut.
+  // On arrête de boucler lorsque la case d'arrivée a un risque stable deux boucles d'affilée.
+  PrevRisk0 := CValMax;
+  while ((Risk[0][0] = CValMax) or (Risk[0][0] <> PrevRisk0)) do
+  begin
+    PrevRisk0 := Risk[0][0];
+    // Memo1.Lines.Add(i.ToString + ' ' + Risk[0, 0].ToString);
+    for y := 0 to HauteurGrille - 1 do
+      for x := 0 to LargeurGrille - 1 do
+      begin
+        // Chaque case du tableau des risques prend son risque officiel ajouté
+        // la valeur de risque (calculé) de la case adjacente la plus faible
+        a := CValMax;
+        if x < LargeurGrille - 1 then
+          a := Risk[y, x + 1] + Chitons[y, x];
+        b := CValMax;
+        if y < HauteurGrille - 1 then
+          b := Risk[y + 1, x] + Chitons[y, x];
+        c := CValMax;
+        if x > 0 then
+          c := Risk[y, x - 1] + Chitons[y, x];
+        d := CValMax;
+        if y > 0 then
+          d := Risk[y - 1, x] + Chitons[y, x];
+        z := CValMax;
+        if a < z then
+          z := a;
+        if b < z then
+          z := b;
+        if c < z then
+          z := c;
+        if d < z then
+          z := d;
+        if (x = LargeurGrille - 1) AND (y = HauteurGrille - 1) then
+          z := Chitons[y, x];
+        Risk[y, x] := z;
+      end;
+  end;
+
+  // On prend le risque minimum total rapatrié depuis la case de fin moins celui de la case de début qu'on ne doit pas comptabiliser
+  Reponse := Risk[0, 0] - Chitons[0, 0];
+
+  // Affichage du résultat calculé
+  AfficheResultat(CJour, CExercice, Reponse);
+end;
+
 procedure TForm1.OuvreFichier(NomFichier: string);
 begin
   FermeFichier;
@@ -2934,11 +3271,11 @@ begin
   items[x].items[y] := items[x].items[y] + 1;
 end;
 
-{ TJour13Coords }
+{ TCoords }
 
-procedure TJour13Coords.Ajoute(AX, AY: Integer);
+procedure TCoords.Ajoute(AX, AY: Integer);
 var
-  coord: TJour13Coord;
+  coord: TCoord;
   ExisteDeja: boolean;
 begin
   ExisteDeja := false;
@@ -2949,12 +3286,23 @@ begin
       break;
     end;
   if not ExisteDeja then
-    Add(TJour13Coord.Create(AX, AY));
+    Add(TCoord.Create(AX, AY));
 end;
 
-{ TJour13Coord }
+function TCoords.ContientCoordonnees(AX, AY: Integer): boolean;
+begin
+  result := false;
+  for var i := Count - 1 downto 0 do
+    if (items[i].x = AX) and (items[i].y = AY) then
+    begin
+      result := true;
+      exit;
+    end;
+end;
 
-constructor TJour13Coord.Create(AX, AY: Integer);
+{ TCoord }
+
+constructor TCoord.Create(AX, AY: Integer);
 begin
   inherited Create;
   x := AX;
