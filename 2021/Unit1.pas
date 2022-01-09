@@ -57,6 +57,8 @@ type
     procedure Jour14_2;
     procedure Jour15_1;
     procedure Jour15_2;
+    procedure Jour16_1;
+    procedure Jour16_2;
     procedure TemplateJour;
 
     function Compare(const Left, Right: uint64): Integer;
@@ -181,8 +183,12 @@ begin
   // Jour14_2;
 
   // https://adventofcode.com/2021/day/15
-  Jour15_1;
-  Jour15_2;
+  // Jour15_1;
+  // Jour15_2;
+
+  // https://adventofcode.com/2021/day/16
+  Jour16_1;
+  Jour16_2;
 end;
 
 function TForm1.getLigne(NomFichier: string): string;
@@ -2962,7 +2968,7 @@ begin
           z := d;
         if not((x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1)) then
         begin // On ne touche pas à la case d'arrivée
-          RiskModifie := riskmodifie or (Risk[y, x] <> z);
+          RiskModifie := RiskModifie or (Risk[y, x] <> z);
           Risk[y, x] := z;
         end;
       end;
@@ -3089,7 +3095,7 @@ begin
           z := d;
         if not((x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1)) then
         begin // On ne touche pas à la case d'arrivée
-          RiskModifie := riskmodifie or (Risk[y, x] <> z);
+          RiskModifie := RiskModifie or (Risk[y, x] <> z);
           Risk[y, x] := z;
         end;
       end;
@@ -3100,6 +3106,391 @@ begin
 
   // Affichage du résultat calculé
   AfficheResultat(CJour, CExercice, Reponse);
+end;
+
+procedure TForm1.Jour16_1;
+Const
+  CNumeroFichier = '16';
+  // 2 chiffres, en alpha
+  CJour = 16; // Numéro du jour
+  CExercice = 1; // Numéro exercice
+type
+  tflux = array of boolean;
+  function GetValue(Flux: tflux; var Position: uint64; nb: uint64): uint64;
+  begin
+    result := 0;
+    while ((Position < Length(Flux)) and (nb > 0)) do
+    begin
+      if Flux[Position] then
+        result := result * 2 + 1
+      else
+        result := result * 2 + 0;
+      inc(Position);
+      dec(nb);
+    end;
+  end;
+  function litpacket(Flux: tflux; var Position: uint64;
+    var TotalVersion: uint64): boolean;
+  var
+    PacketVersion, PacketType, PacketId, NbSubPacket, LengthSubPacket,
+      EndPosition, valeur: uint64;
+    FinDesNombres: boolean;
+  begin
+    // Traitement du paquet
+    if Position > Length(Flux) - 3 then
+      exit(false);
+    PacketVersion := GetValue(Flux, Position, 3);
+    if Position > Length(Flux) - 3 then
+      exit(false);
+    PacketType := GetValue(Flux, Position, 3);
+    case PacketType of
+      4: // valeurs qui se suivent
+        begin
+          repeat
+            FinDesNombres := not Flux[Position];
+            inc(Position);
+            if Position > Length(Flux) - 3 then
+              exit(false);
+            valeur := GetValue(Flux, Position, 4);
+          until (FinDesNombres);
+        end;
+    else // opérateur contenant d'autres paquets
+      begin
+        if Position > Length(Flux) - 1 then
+          exit(false);
+        case Flux[Position] of
+          true: // 11 bits pour la longueur
+            begin
+              inc(Position);
+              if Position > Length(Flux) - 11 then
+                exit(false);
+              NbSubPacket := GetValue(Flux, Position, 11);
+              while ((NbSubPacket > 0) and (Position < Length(Flux))) do
+              begin
+                if not litpacket(Flux, Position, TotalVersion) then
+                  exit(false);
+                dec(NbSubPacket);
+              end;
+            end;
+          false: // 15 bits pour la longueur
+            begin
+              inc(Position);
+              if Position > Length(Flux) - 15 then
+                exit(false);
+              LengthSubPacket := GetValue(Flux, Position, 15);
+              EndPosition := Position + LengthSubPacket;
+              while ((Position < EndPosition) and (Position < Length(Flux))) do
+                if not litpacket(Flux, Position, TotalVersion) then
+                  exit(false);
+            end;
+        end;
+      end;
+    end;
+    TotalVersion := TotalVersion + PacketVersion;
+    result := true;
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Hex2Bin: string;
+  Flux: tflux;
+  Position: uint64;
+  i: Integer;
+begin
+  repeat
+    // Lit la ligne hexadecimale reçue
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+    if (not Ligne.IsEmpty) then
+    begin
+      // Transforme l'hexadécimal en binaire
+      setlength(Flux, Ligne.Length * 4); // 1 caractère HEX => 4 bits
+      Position := 0;
+      for i := 0 to Ligne.Length - 1 do
+      begin
+        case Ligne.Chars[i] of
+          '0':
+            Hex2Bin := '0000';
+          '1':
+            Hex2Bin := '0001';
+          '2':
+            Hex2Bin := '0010';
+          '3':
+            Hex2Bin := '0011';
+          '4':
+            Hex2Bin := '0100';
+          '5':
+            Hex2Bin := '0101';
+          '6':
+            Hex2Bin := '0110';
+          '7':
+            Hex2Bin := '0111';
+          '8':
+            Hex2Bin := '1000';
+          '9':
+            Hex2Bin := '1001';
+          'A':
+            Hex2Bin := '1010';
+          'B':
+            Hex2Bin := '1011';
+          'C':
+            Hex2Bin := '1100';
+          'D':
+            Hex2Bin := '1101';
+          'E':
+            Hex2Bin := '1110';
+          'F':
+            Hex2Bin := '1111';
+        end;
+        Flux[Position] := (Hex2Bin.Chars[0] = '1');
+        Flux[Position + 1] := (Hex2Bin.Chars[1] = '1');
+        Flux[Position + 2] := (Hex2Bin.Chars[2] = '1');
+        Flux[Position + 3] := (Hex2Bin.Chars[3] = '1');
+        inc(Position, 4);
+      end;
+
+      // Lit les paquets
+      Reponse := 0;
+      Position := 0;
+      While (Position < Length(Flux)) do
+      begin
+        if not litpacket(Flux, Position, Reponse) then
+          Position := Length(Flux);
+      end;
+
+      // Affiche la réponse
+      AfficheResultat(CJour, CExercice, Reponse);
+    end;
+  until FinDeFichier;
+  FermeFichier;
+end;
+
+procedure TForm1.Jour16_2;
+Const
+  CNumeroFichier = '16';
+  // 2 chiffres, en alpha
+  CJour = 16; // Numéro du jour
+  CExercice = 2; // Numéro exercice
+type
+  tflux = array of boolean;
+  function GetValue(Flux: tflux; var Position: uint64; nb: uint64): int64;
+  begin
+    result := 0;
+    while ((Position < Length(Flux)) and (nb > 0)) do
+    begin
+      if Flux[Position] then
+        result := result * 2 + 1
+      else
+        result := result * 2 + 0;
+      inc(Position);
+      dec(nb);
+    end;
+  end;
+  function litpacket(Flux: tflux; var Position: uint64;
+    var Resultat: int64): boolean;
+  var
+    PacketVersion, PacketType, PacketId, NbSubPacket, LengthSubPacket,
+      EndPosition, valeur: int64;
+    FinDesNombres: boolean;
+  begin
+    // Traitement du paquet
+    if Position > Length(Flux) - 3 then
+      exit(false);
+    PacketVersion := GetValue(Flux, Position, 3);
+    if Position > Length(Flux) - 3 then
+      exit(false);
+    PacketType := GetValue(Flux, Position, 3);
+    case PacketType of
+      4: // valeurs qui se suivent
+        begin
+          Resultat := -1;
+          repeat
+            FinDesNombres := not Flux[Position];
+            inc(Position);
+            if Position > Length(Flux) - 3 then
+              exit(false);
+            if Resultat < 0 then
+              Resultat := GetValue(Flux, Position, 4)
+            else
+              Resultat := Resultat * 16 + GetValue(Flux, Position, 4);
+          until (FinDesNombres);
+        end;
+    else // opérateur contenant d'autres paquets
+      begin
+        Resultat := -1;
+        if Position > Length(Flux) - 1 then
+          exit(false);
+        case Flux[Position] of
+          true: // 11 bits pour la longueur
+            begin
+              inc(Position);
+              if Position > Length(Flux) - 11 then
+                exit(false);
+              NbSubPacket := GetValue(Flux, Position, 11);
+              while ((NbSubPacket > 0) and (Position < Length(Flux))) do
+              begin
+                if not litpacket(Flux, Position, valeur) then
+                  exit(false);
+                dec(NbSubPacket);
+                if (Resultat < 0) then
+                  Resultat := valeur
+                else
+                  case PacketType of
+                    0: // sum
+                      Resultat := Resultat + valeur;
+                    1: // product
+                      Resultat := Resultat * valeur;
+                    2: // minimum
+                      if Resultat > valeur then
+                        Resultat := valeur;
+                    3: // maximum
+                      if Resultat < valeur then
+                        Resultat := valeur;
+                    5: // greater than
+                      if Resultat > valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                    6: // less than
+                      if Resultat < valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                    7: // equal
+                      if Resultat = valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                  end;
+              end;
+            end;
+          false: // 15 bits pour la longueur
+            begin
+              inc(Position);
+              if Position > Length(Flux) - 15 then
+                exit(false);
+              LengthSubPacket := GetValue(Flux, Position, 15);
+              EndPosition := Position + LengthSubPacket;
+              while ((Position < EndPosition) and (Position < Length(Flux))) do
+              begin
+                if not litpacket(Flux, Position, valeur) then
+                  exit(false);
+                if (Resultat < 0) then
+                  Resultat := valeur
+                else
+                  case PacketType of
+                    0: // sum
+                      Resultat := Resultat + valeur;
+                    1: // product
+                      Resultat := Resultat * valeur;
+                    2: // minimum
+                      if Resultat > valeur then
+                        Resultat := valeur;
+                    3: // maximum
+                      if Resultat < valeur then
+                        Resultat := valeur;
+                    5: // greater than
+                      if Resultat > valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                    6: // less than
+                      if Resultat < valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                    7: // equal
+                      if Resultat = valeur then
+                        Resultat := 1
+                      else
+                        Resultat := 0;
+                  end;
+              end;
+            end;
+        end;
+      end;
+    end;
+    result := true;
+    // memo1.Lines.Add(resultat.tostring);
+  end;
+
+var
+  Ligne: string;
+  Reponse: uint64;
+  Hex2Bin: string;
+  Flux: tflux;
+  Position: uint64;
+  i: Integer;
+  Resultat: int64;
+begin
+  repeat
+    // Lit la ligne hexadecimale reçue
+    Ligne := getLigne('..\..\input-' + CNumeroFichier + '.txt');
+
+    if (not Ligne.IsEmpty) then
+    begin
+      // Transforme l'hexadécimal en binaire
+      setlength(Flux, Ligne.Length * 4); // 1 caractère HEX => 4 bits
+      Position := 0;
+      for i := 0 to Ligne.Length - 1 do
+      begin
+        case Ligne.Chars[i] of
+          '0':
+            Hex2Bin := '0000';
+          '1':
+            Hex2Bin := '0001';
+          '2':
+            Hex2Bin := '0010';
+          '3':
+            Hex2Bin := '0011';
+          '4':
+            Hex2Bin := '0100';
+          '5':
+            Hex2Bin := '0101';
+          '6':
+            Hex2Bin := '0110';
+          '7':
+            Hex2Bin := '0111';
+          '8':
+            Hex2Bin := '1000';
+          '9':
+            Hex2Bin := '1001';
+          'A':
+            Hex2Bin := '1010';
+          'B':
+            Hex2Bin := '1011';
+          'C':
+            Hex2Bin := '1100';
+          'D':
+            Hex2Bin := '1101';
+          'E':
+            Hex2Bin := '1110';
+          'F':
+            Hex2Bin := '1111';
+        end;
+        Flux[Position] := (Hex2Bin.Chars[0] = '1');
+        Flux[Position + 1] := (Hex2Bin.Chars[1] = '1');
+        Flux[Position + 2] := (Hex2Bin.Chars[2] = '1');
+        Flux[Position + 3] := (Hex2Bin.Chars[3] = '1');
+        inc(Position, 4);
+      end;
+
+      // Lit les paquets
+      Position := 0;
+      While (Position < Length(Flux)) do
+      begin
+        if litpacket(Flux, Position, Resultat) then
+          AfficheResultat(CJour, CExercice, Resultat)
+        else
+          Position := Length(Flux);
+      end;
+    end;
+  until FinDeFichier;
+  FermeFichier;
+
+  // Affiche la réponse
+  // AfficheResultat(CJour, CExercice, Reponse);
 end;
 
 procedure TForm1.OuvreFichier(NomFichier: string);
@@ -3121,7 +3512,6 @@ var
   Ligne: string;
   Reponse: uint64;
 begin
-exit;
   Reponse := 0;
   PremiereLigneTraitee := false;
   repeat
