@@ -2883,7 +2883,7 @@ var
   Risk, Chitons: TChitons;
   a, b, c, d, z: uint64;
   i, x, y: uint64;
-  PrevRisk0: uint64;
+  RiskModifie: boolean;
 begin
   // Solution provenant de
   // https://github.com/mikewarot/Advent_of_Code_in_Pascal/blob/master/2021/advent2021_15a.lpr
@@ -2929,10 +2929,10 @@ begin
 
   // Chaque boucle déplace le risque calculé depuis la case finale (en bas à droite) d'un cran vers la gauche et/ou vers le haut.
   // On arrête de boucler lorsque la case d'arrivée a un risque stable deux boucles d'affilée.
-  PrevRisk0 := CValMax;
-  while ((Risk[0][0] = CValMax) or (Risk[0][0] <> PrevRisk0)) do
+  RiskModifie := true;
+  while (RiskModifie) do
   begin
-    PrevRisk0 := Risk[0][0];
+    RiskModifie := false;
     // Memo1.Lines.Add(i.ToString + ' ' + Risk[0, 0].ToString);
     for y := 0 to Length(Risk) - 1 do
       for x := 0 to Length(Risk[y]) - 1 do
@@ -2960,9 +2960,11 @@ begin
           z := c;
         if d < z then
           z := d;
-        if (x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1) then
-          z := Chitons[y, x];
-        Risk[y, x] := z;
+        if not((x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1)) then
+        begin // On ne touche pas à la case d'arrivée
+          RiskModifie := riskmodifie or (Risk[y, x] <> z);
+          Risk[y, x] := z;
+        end;
       end;
   end;
 
@@ -2988,8 +2990,8 @@ var
   Risk, Chitons: TChitons;
   a, b, c, d, z: uint64;
   i, x, y: uint64;
-  PrevRisk0: uint64;
   LargeurLigne, LargeurGrille, NbLignes, HauteurGrille: uint64;
+  RiskModifie: boolean;
 begin
   // Chargement du fichier
   lignes := tstringlist.Create;
@@ -3054,10 +3056,10 @@ begin
 
   // Chaque boucle déplace le risque calculé depuis la case finale (en bas à droite) d'un cran vers la gauche et/ou vers le haut.
   // On arrête de boucler lorsque la case d'arrivée a un risque stable deux boucles d'affilée.
-  PrevRisk0 := CValMax;
-  while ((Risk[0][0] = CValMax) or (Risk[0][0] <> PrevRisk0)) do
+  RiskModifie := true;
+  while (RiskModifie) do
   begin
-    PrevRisk0 := Risk[0][0];
+    RiskModifie := false;
     // Memo1.Lines.Add(i.ToString + ' ' + Risk[0, 0].ToString);
     for y := 0 to HauteurGrille - 1 do
       for x := 0 to LargeurGrille - 1 do
@@ -3085,9 +3087,11 @@ begin
           z := c;
         if d < z then
           z := d;
-        if (x = LargeurGrille - 1) AND (y = HauteurGrille - 1) then
-          z := Chitons[y, x];
-        Risk[y, x] := z;
+        if not((x = Length(Risk[y]) - 1) AND (y = Length(Risk) - 1)) then
+        begin // On ne touche pas à la case d'arrivée
+          RiskModifie := riskmodifie or (Risk[y, x] <> z);
+          Risk[y, x] := z;
+        end;
       end;
   end;
 
@@ -3117,6 +3121,7 @@ var
   Ligne: string;
   Reponse: uint64;
 begin
+exit;
   Reponse := 0;
   PremiereLigneTraitee := false;
   repeat
