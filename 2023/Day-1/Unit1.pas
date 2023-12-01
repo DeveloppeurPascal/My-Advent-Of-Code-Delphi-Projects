@@ -93,7 +93,7 @@ end;
 function TForm1.Jour1Exercice1: cardinal;
 begin
   var
-  Lignes := tfile.ReadAllLines('..\..\input-1.txt');
+  Lignes := tfile.ReadAllLines('..\..\input.txt');
   result := 0;
   for var i := 0 to length(Lignes) - 1 do
   begin
@@ -158,7 +158,7 @@ var
   ch: string;
   nb, idx: integer;
 begin
-  Lignes := tfile.ReadAllLines('..\..\input-1.txt');
+  Lignes := tfile.ReadAllLines('..\..\input.txt');
   result := 0;
   for i := 0 to length(Lignes) - 1 do
   begin
