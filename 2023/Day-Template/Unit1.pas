@@ -7,20 +7,28 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.WinXCtrls, Vcl.StdCtrls;
 
+Const
+  // CDataFile = '..\..\input.txt';
+  CDataFile = '..\..\input-test.txt';
+
 type
   TForm1 = class(TForm)
     Button1: TButton;
-    Label1: TLabel;
     ActivityIndicator1: TActivityIndicator;
     Button2: TButton;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    Memo1: TMemo;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     procedure BeginTraitement;
     procedure EndTraitement;
     { Déclarations privées }
-    function JourXXXExercice1: cardinal;
-    function JourXXXExercice2: cardinal;
+    function Exercice1: cardinal;
+    function Exercice2: cardinal;
+    procedure AddLog(Const S: String);
   public
     { Déclarations publiques }
   end;
@@ -34,42 +42,70 @@ implementation
 
 uses
   System.Math,
+  System.RegularExpressions,
   System.IOUtils;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   BeginTraitement;
+  Edit1.Text := 'Calcul en cours';
   try
     tthread.CreateAnonymousThread(
       procedure
       begin
         try
-          Label1.Caption := JourXXXExercice1.tostring;
-        finally
-          EndTraitement;
+          try
+            Edit1.Text := Exercice1.tostring;
+            Edit1.SelectAll;
+            Edit1.CopyToClipboard;
+          finally
+            EndTraitement;
+          end;
+          ShowMessage(Edit1.Text + ' copié dans le presse papier.');
+        except
+          Edit1.Text := 'Erreur';
         end;
       end).Start;
   except
     EndTraitement;
+    Edit1.Text := 'Erreur';
   end;
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
   BeginTraitement;
+  Edit2.Text := 'Calcul en cours';
   try
     tthread.CreateAnonymousThread(
       procedure
       begin
         try
-          Label1.Caption := JourXXXExercice2.tostring;
-        finally
-          EndTraitement;
+          try
+            Edit2.Text := Exercice2.tostring;
+            Edit2.SelectAll;
+            Edit2.CopyToClipboard;
+          finally
+            EndTraitement;
+          end;
+          ShowMessage(Edit2.Text + ' copié dans le presse papier.');
+        except
+          Edit2.Text := 'Erreur';
         end;
       end).Start;
   except
     EndTraitement;
+    Edit2.Text := 'Erreur';
   end;
+end;
+
+procedure TForm1.AddLog(const S: String);
+begin
+  tthread.Synchronize(nil,
+    procedure
+    begin
+      Memo1.Lines.Add(S);
+    end);
 end;
 
 procedure TForm1.BeginTraitement;
@@ -90,30 +126,37 @@ begin
     end);
 end;
 
-function TForm1.JourXXXExercice1: cardinal;
+function TForm1.Exercice1: cardinal;
 var
   Lignes: TArray<string>;
   i: integer;
 begin
-  Lignes := tfile.ReadAllLines('..\..\input.txt');
+  Lignes := tfile.ReadAllLines(CDataFile);
   result := 0;
   for i := 0 to length(Lignes) - 1 do
   begin
-    // result := result + ???;
+    // TODO : à compléter
   end;
 end;
 
-function TForm1.JourXXXExercice2: cardinal;
+function TForm1.Exercice2: cardinal;
 var
-  i: integer;
+  Lig: integer;
   Lignes: TArray<string>;
 begin
-  Lignes := tfile.ReadAllLines('..\..\input.txt');
+  Lignes := tfile.ReadAllLines(CDataFile);
   result := 0;
-  for i := 0 to length(Lignes) - 1 do
+  for Lig := 0 to length(Lignes) - 1 do
   begin
-    // result := result + ???;
+    // TODO : à compléter
   end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  Edit1.Text := '';
+  Edit2.Text := '';
+  Memo1.Clear;
 end;
 
 end.
