@@ -62,8 +62,7 @@ object Form1: TForm1
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'Memo1')
+    ScrollBars = ssVertical
     TabOrder = 4
-    ExplicitWidth = 659
-    ExplicitHeight = 196
   end
 end

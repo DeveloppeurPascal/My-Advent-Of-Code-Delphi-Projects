@@ -29,6 +29,7 @@ type
     function Exercice1: cardinal;
     function Exercice2: cardinal;
     procedure AddLog(Const S: String);
+    function MsToTimeString(ms: int64): string;
   public
     { Déclarations publiques }
   end;
@@ -42,7 +43,9 @@ implementation
 
 uses
   System.Math,
+  System.DateUtils,
   System.RegularExpressions,
+  System.Diagnostics,
   System.IOUtils;
 
 procedure TForm1.Button1Click(Sender: TObject);
@@ -52,10 +55,20 @@ begin
   try
     tthread.CreateAnonymousThread(
       procedure
+      var
+        time: TStopwatch;
       begin
         try
           try
-            Edit1.Text := Exercice1.tostring;
+            time.Start;
+            try
+              Edit1.Text := Exercice1.tostring;
+            finally
+              time.Stop;
+              AddLog('Result : ' + Edit1.Text);
+              AddLog('Elapsed time : ' +
+                MsToTimeString(time.ElapsedMilliseconds));
+            end;
             Edit1.SelectAll;
             Edit1.CopyToClipboard;
           finally
@@ -79,10 +92,20 @@ begin
   try
     tthread.CreateAnonymousThread(
       procedure
+      var
+        time: TStopwatch;
       begin
         try
           try
-            Edit2.Text := Exercice2.tostring;
+            time.Start;
+            try
+              Edit2.Text := Exercice2.tostring;
+            finally
+              time.Stop;
+              AddLog('Result : ' + Edit2.Text);
+              AddLog('Elapsed time : ' +
+                MsToTimeString(time.ElapsedMilliseconds));
+            end;
             Edit2.SelectAll;
             Edit2.CopyToClipboard;
           finally
@@ -128,14 +151,15 @@ end;
 
 function TForm1.Exercice1: cardinal;
 var
+  Lig: integer;
   Lignes: TArray<string>;
-  i: integer;
 begin
   Lignes := tfile.ReadAllLines(CDataFile);
   result := 0;
-  for i := 0 to length(Lignes) - 1 do
+  for Lig := 0 to length(Lignes) - 1 do
   begin
     // TODO : à compléter
+
   end;
 end;
 
@@ -149,6 +173,7 @@ begin
   for Lig := 0 to length(Lignes) - 1 do
   begin
     // TODO : à compléter
+
   end;
 end;
 
@@ -157,6 +182,19 @@ begin
   Edit1.Text := '';
   Edit2.Text := '';
   Memo1.Clear;
+end;
+
+function TForm1.MsToTimeString(ms: int64): string;
+var
+  dt: TDatetime;
+  S: string;
+begin
+  dt := 0;
+  dt.addMilliSecond(ms);
+  S := dt.GetMilliSecond.tostring;
+  while length(S) < 3 do
+    S := '0' + S;
+  result := TimeToStr(dt) + ',' + S;
 end;
 
 end.
