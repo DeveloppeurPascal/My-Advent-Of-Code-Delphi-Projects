@@ -7,26 +7,31 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.WinXCtrls, Vcl.StdCtrls;
 
-const
-   CDataFile = '..\..\input.txt';
-  //CDataFile = '..\..\input-test.txt';
+Const
+  // CDataFile = '..\..\input.txt';
+  CDataFile = '..\..\input-test.txt';
 
 type
   TForm1 = class(TForm)
     Button1: TButton;
-    Label1: TLabel;
     ActivityIndicator1: TActivityIndicator;
     Button2: TButton;
+    Edit1: TEdit;
+    Edit2: TEdit;
     Memo1: TMemo;
+    Button3: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     procedure BeginTraitement;
     procedure EndTraitement;
     { Déclarations privées }
-    function Jour3Exercice1: cardinal;
-    function Jour3Exercice2: cardinal;
-    procedure log(s: string);
+    function Exercice1: cardinal;
+    function Exercice2: cardinal;
+    function Exercice2Bis: cardinal;
+    procedure AddLog(Const S: String);
+    function MsToTimeString(ms: int64): string;
   public
     { Déclarations publiques }
   end;
@@ -40,42 +45,95 @@ implementation
 
 uses
   System.Math,
+  System.DateUtils,
+  System.RegularExpressions,
+  System.Diagnostics,
   System.IOUtils;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   BeginTraitement;
+  Edit1.Text := 'Calcul en cours';
   try
     tthread.CreateAnonymousThread(
       procedure
+      var
+        time: TStopwatch;
       begin
         try
-          Label1.Caption := Jour3Exercice1.tostring;
-        finally
-          EndTraitement;
+          try
+            time.Start;
+            try
+              Edit1.Text := Exercice1.tostring;
+            finally
+              time.Stop;
+              AddLog('Result : ' + Edit1.Text);
+              AddLog('Elapsed time : ' +
+                MsToTimeString(time.ElapsedMilliseconds));
+            end;
+            Edit1.SelectAll;
+            Edit1.CopyToClipboard;
+          finally
+            EndTraitement;
+          end;
+          ShowMessage(Edit1.Text + ' copié dans le presse papier.');
+        except
+          Edit1.Text := 'Erreur';
         end;
       end).Start;
   except
     EndTraitement;
+    Edit1.Text := 'Erreur';
   end;
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
   BeginTraitement;
+  Edit2.Text := 'Calcul en cours';
   try
     tthread.CreateAnonymousThread(
       procedure
+      var
+        time: TStopwatch;
       begin
         try
-          Label1.Caption := Jour3Exercice2.tostring;
-        finally
-          EndTraitement;
+          try
+            time.Start;
+            try
+              if string((Sender as TButton).Name).endswith('3') then
+                Edit2.Text := Exercice2Bis.tostring
+              else
+                Edit2.Text := Exercice2.tostring;
+            finally
+              time.Stop;
+              AddLog('Result : ' + Edit2.Text);
+              AddLog('Elapsed time : ' +
+                MsToTimeString(time.ElapsedMilliseconds));
+            end;
+            Edit2.SelectAll;
+            Edit2.CopyToClipboard;
+          finally
+            EndTraitement;
+          end;
+          ShowMessage(Edit2.Text + ' copié dans le presse papier.');
+        except
+          Edit2.Text := 'Erreur';
         end;
       end).Start;
   except
     EndTraitement;
+    Edit2.Text := 'Erreur';
   end;
+end;
+
+procedure TForm1.AddLog(const S: String);
+begin
+  tthread.Synchronize(nil,
+    procedure
+    begin
+      Memo1.Lines.Add(S);
+    end);
 end;
 
 procedure TForm1.BeginTraitement;
@@ -96,7 +154,7 @@ begin
     end);
 end;
 
-function TForm1.Jour3Exercice1: cardinal;
+function TForm1.Exercice1: cardinal;
 var
   Lignes: TArray<string>;
   i: integer;
@@ -104,7 +162,7 @@ var
   j: integer;
   NumberValid: boolean;
 begin
-  Lignes := tfile.ReadAllLines(CDataFile, tencoding.ASCII);
+  Lignes := tfile.ReadAllLines(CDataFile);
   result := 0;
   for i := 0 to length(Lignes) - 1 do
   begin
@@ -151,14 +209,14 @@ begin
       end
       else if NumberValid then
       begin
-        log('Ok : ' + CurrentNumber.tostring);
+        AddLog('Ok : ' + CurrentNumber.tostring);
         result := result + CurrentNumber;
         NumberValid := false;
         CurrentNumber := 0;
       end
       else if (CurrentNumber > 0) then
       begin
-        log('Not Ok : ' + CurrentNumber.tostring);
+        AddLog('Not Ok : ' + CurrentNumber.tostring);
         CurrentNumber := 0;
       end;
     end;
@@ -167,7 +225,7 @@ begin
   end;
 end;
 
-function TForm1.Jour3Exercice2: cardinal;
+function TForm1.Exercice2: cardinal;
   function getNumber(const Lignes: TArray<string>; const Col, Lig: integer;
   out StartCol, EndCol: integer; Out Number: cardinal): boolean;
   var
@@ -309,13 +367,99 @@ begin
       end;
 end;
 
-procedure TForm1.log(s: string);
+function TForm1.Exercice2Bis: cardinal;
+var
+  Lignes: TArray<string>;
+  i: integer;
+  CurrentNumber: cardinal;
+  j: integer;
+  Asteriskfound: boolean;
+  // TODO : à faire
+  // stocker liste de coordonnées des étoiles avec la valeur en cours et le fait d'avoir 2 nombres multipliés
+  // lors du parcours, pour chaque chiffre on regarde si une étoile est présente (au lieu du test d'avant)
+  // si c'est oui, on liste les coordonnées de la ou des étoiles concernées par ce nombre
+  // en fin de parcours du nombre, on traite la multiplication liée aux étoiles trouvées pour lui
+  // en fin de fichier on cumule le total des valeurs des étoiles ayant eu des nombres multipliés entre eux
 begin
-  tthread.Synchronize(nil,
-    procedure
+  AddLog('not finished');
+  exit;
+  Lignes := tfile.ReadAllLines(CDataFile);
+  result := 0;
+  for i := 0 to length(Lignes) - 1 do
+  begin
+    Asteriskfound := false;
+    CurrentNumber := 0;
+    for j := 0 to length(Lignes[i]) - 1 do
     begin
-      Memo1.Lines.Add(s);
-    end);
+      if Lignes[i].Chars[j] in ['0' .. '9'] then
+      begin
+        CurrentNumber := CurrentNumber * 10 + strtoint(Lignes[i].Chars[j]);
+        if not Asteriskfound then
+        begin
+          // à gauche du chiffre
+          Asteriskfound := (j > 0) and (Lignes[i].Chars[j - 1] = '*');
+          // en haut à gauche du chiffre
+          Asteriskfound := Asteriskfound or
+            ((j > 0) and (i > 0) and (Lignes[i - 1].Chars[j - 1] = '*'));
+          // en bas à gauche du chiffre
+          Asteriskfound := Asteriskfound or
+            ((j > 0) and (i < length(Lignes) - 1) and
+            (Lignes[i + 1].Chars[j - 1] = '*'));
+          // à droite du chiffre
+          Asteriskfound := Asteriskfound or
+            ((j < length(Lignes[i]) - 1) and (Lignes[i].Chars[j + 1] = '*'));
+          // en haut à droite du chiffre
+          Asteriskfound := Asteriskfound or
+            ((i > 0) and (j < length(Lignes[i - 1]) - 1) and
+            (Lignes[i - 1].Chars[j + 1] = '*'));
+          // en bas à droite du chiffre
+          Asteriskfound := Asteriskfound or
+            ((i < length(Lignes) - 1) and (j < length(Lignes[i + 1]) - 1) and
+            (Lignes[i + 1].Chars[j + 1] = '*'));
+          // au dessus du chiffre
+          Asteriskfound := Asteriskfound or
+            ((i > 0) and (Lignes[i - 1].Chars[j] = '*'));
+          // sous le chiffre
+          Asteriskfound := Asteriskfound or
+            ((i < length(Lignes) - 1) and (Lignes[i + 1].Chars[j] = '*'));
+        end;
+      end
+      else if Asteriskfound then
+      begin
+        AddLog('Ok : ' + CurrentNumber.tostring);
+        result := result + CurrentNumber;
+        Asteriskfound := false;
+        CurrentNumber := 0;
+      end
+      else if (CurrentNumber > 0) then
+      begin
+        AddLog('Not Ok : ' + CurrentNumber.tostring);
+        CurrentNumber := 0;
+      end;
+    end;
+    if Asteriskfound then
+      result := result + CurrentNumber;
+  end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  Edit1.Text := '';
+  Edit2.Text := '';
+  Memo1.Clear;
+end;
+
+function TForm1.MsToTimeString(ms: int64): string;
+var
+  dt: TDatetime;
+  S: string;
+begin
+  dt := 0;
+  dt.addMilliSecond(ms);
+  S := dt.GetMilliSecond.tostring;
+  while length(S) < 3 do
+    S := '0' + S;
+  result := TimeToStr(dt) + ',' + S;
 end;
 
 end.
