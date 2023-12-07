@@ -26,8 +26,8 @@ type
     procedure BeginTraitement;
     procedure EndTraitement;
     { Déclarations privées }
-    function Exercice1: cardinal;
-    function Exercice2: cardinal;
+    function Exercice1: int64;
+    function Exercice2: int64;
     procedure AddLog(Const S: String);
     function MsToTimeString(ms: int64): string;
   public
@@ -45,6 +45,8 @@ uses
   System.Math,
   System.DateUtils,
   System.RegularExpressions,
+  System.Generics.Defaults,
+  System.Generics.Collections,
   System.Diagnostics,
   System.IOUtils;
 
@@ -149,7 +151,7 @@ begin
     end);
 end;
 
-function TForm1.Exercice1: cardinal;
+function TForm1.Exercice1: int64;
 var
   Lig: integer;
   Lignes: TArray<string>;
@@ -159,11 +161,10 @@ begin
   for Lig := 0 to length(Lignes) - 1 do
   begin
     // TODO : à compléter
-
   end;
 end;
 
-function TForm1.Exercice2: cardinal;
+function TForm1.Exercice2: int64;
 var
   Lig: integer;
   Lignes: TArray<string>;
@@ -173,7 +174,6 @@ begin
   for Lig := 0 to length(Lignes) - 1 do
   begin
     // TODO : à compléter
-
   end;
 end;
 
