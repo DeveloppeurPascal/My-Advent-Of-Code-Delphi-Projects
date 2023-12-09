@@ -3,9 +3,18 @@ unit Unit1;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.WinXCtrls, Vcl.StdCtrls;
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.WinXCtrls,
+  Vcl.StdCtrls,
+  System.Generics.Collections;
 
 Const
   // CDataFile = '..\..\input.txt';
@@ -46,7 +55,6 @@ uses
   System.DateUtils,
   System.RegularExpressions,
   System.Generics.Defaults,
-  System.Generics.Collections,
   System.Diagnostics,
   System.IOUtils;
 
@@ -196,5 +204,11 @@ begin
     S := '0' + S;
   result := TimeToStr(dt) + ',' + S;
 end;
+
+initialization
+
+{$IFDEF DEBUG}
+  ReportMemoryLeaksOnShutdown := true;
+{$ENDIF}
 
 end.
