@@ -142,6 +142,7 @@ procedure TForm1.BeginTraitement;
 begin
   Button1.Enabled := false;
   Button2.Enabled := false;
+  Button3.Enabled := false;
   ActivityIndicator1.animate := true;
 end;
 
@@ -153,6 +154,7 @@ begin
       ActivityIndicator1.animate := false;
       Button1.Enabled := true;
       Button2.Enabled := true;
+      Button3.Enabled := true;
     end);
 end;
 
