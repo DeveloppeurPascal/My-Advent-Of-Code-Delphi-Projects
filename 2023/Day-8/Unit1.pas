@@ -303,19 +303,17 @@ begin
 
       result := 0;
       for j := 0 to NodesList.Count - 1 do
-        // TODO : resortir le TTHread correspondant pour en faire une liste d'attente
         Exercice2Loop(Network, NodesList[j], Navigate);
 
-      while not tthread.CheckTerminated do
+      while (result = 0) do
       begin
-        sleep(100);
+        if tthread.CheckTerminated then
+          abort;
+        sleep(1000);
         System.TMonitor.Enter(Network);
         try
           if Network.NbOk = NodesList.Count then
-          begin
             result := Network.CompteurFinal;
-            break;
-          end;
         finally
           System.TMonitor.exit(Network);
         end;
@@ -491,13 +489,17 @@ begin
       NavIndex := 0;
       Compteur := 0;
       repeat
+        if tthread.CheckTerminated then
+          abort;
         repeat
+          if tthread.CheckTerminated then
+            abort;
           inc(Compteur);
           NodeName := Network[NodeName].NextNode(Navigate.Chars[NavIndex]);
           inc(NavIndex);
           if (NavIndex >= Navigate.length) then
             NavIndex := 0;
-        until (Network[NodeName].isAnEnd) or tthread.CheckTerminated;
+        until (Network[NodeName].isAnEnd);
         ReBoucle := false;
         System.TMonitor.Enter(Network);
         try
@@ -505,6 +507,12 @@ begin
           begin
             Network.NbOk := 1;
             Network.CompteurFinal := Compteur;
+            tthread.Queue(nil,
+              procedure
+              begin
+                Form1.Button2.caption := StartNodeName + ' : ' +
+                  Compteur.tostring;
+              end);
           end
           else if Network.CompteurFinal = Compteur then
             Network.NbOk := Network.NbOk + 1
@@ -513,22 +521,23 @@ begin
         finally
           System.TMonitor.exit(Network);
         end;
-        tthread.Synchronize(nil,
-          procedure
-          begin
-            Form1.AddLog(StartNodeName + ' : ' + Compteur.tostring);
-          end);
+        // tthread.Synchronize(nil,
+        // procedure
+        // begin
+        // Form1.AddLog(StartNodeName + ' : ' + Compteur.tostring);
+        // end);
         repeat
-          sleep(100);
+          sleep(5);
+          if tthread.CheckTerminated then
+            abort;
           System.TMonitor.Enter(Network);
           try
-            if Network.CompteurFinal <> Compteur then
-              ReBoucle := true;
+            ReBoucle := (Network.CompteurFinal <> Compteur);
           finally
             System.TMonitor.exit(Network);
           end;
-        until ReBoucle or tthread.CheckTerminated;
-      until (not ReBoucle) or tthread.CheckTerminated;
+        until ReBoucle;
+      until (not ReBoucle);
     end).Start;
 end;
 
