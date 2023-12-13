@@ -17,8 +17,8 @@ uses
   System.Generics.Collections;
 
 Const
-  // CDataFile = '..\..\input.txt';
-  CDataFile = '..\..\input-test.txt';
+   CDataFile = '..\..\input.txt';
+//  CDataFile = '..\..\input-test.txt';
 
 type
   TNbList = TList<int64>;
@@ -150,6 +150,9 @@ var
   CurrentNb: int64;
   Point: boolean;
 begin
+  if tthread.checkterminated then
+    exit;
+
   result := 0;
   CurrentNb := 0;
   Point := true;
@@ -157,8 +160,6 @@ begin
   // NbIdx.tostring);
   while (ArrIdx < Arrangement.length) do
   begin
-    if tthread.checkterminated then
-      abort;
     // AddLog(Arrangement.chars[ArrIdx]);
     case Arrangement.chars[ArrIdx] of
       '.': // On passe au suivant sauf si on traitait des '#' et qu'il en reste
@@ -213,7 +214,8 @@ begin
           Point := false;
         end;
     else
-      raise exception.create('Unknow character.');
+      raise exception.create('Unknow character "' + Arrangement.chars
+        [ArrIdx] + '" !');
     end;
     ArrIdx := ArrIdx + 1;
   end;
@@ -427,20 +429,21 @@ var
   Lignes: TArray<string>;
   NbLignes: int64;
   Total: int64;
-  MutexTotal: tmutex;
+  MutexTotal: TMutex;
 begin
   Lignes := tfile.ReadAllLines(CDataFile);
   NbLignes := length(Lignes);
   Total := 0;
-  MutexTotal := tmutex.create;
+  MutexTotal := TMutex.create;
   try
     tparallel.for(0, NbLignes - 1,
       procedure(Lig: integer)
       var
         Tab: TArray<string>;
-        Arrangement: string;
+        Arrangement, ArrangementFinal: string;
         i, j: integer;
-        NbArrangements: int64;
+        TotalLigne, NbPourUne, NbPourDeux, NbPourTrois, NbPourQuatre,
+          NbPourCinq: int64;
         Nb: TNbList;
       begin
         try
@@ -453,24 +456,119 @@ begin
           try
             Tab := Lignes[Lig].split([' ']);
             assert(length(Tab) = 2, 'line error');
-            Arrangement := Tab[0] + '?' + Tab[0] + '?' + Tab[0] + '?' + Tab[0] +
-              '?' + Tab[0];
-            // AddLog(Arrangement);
+
+            Arrangement := Tab[0];
 
             Tab := Tab[1].split([',']);
             Nb.clear;
-            for j := 1 to 5 do
-              for i := 0 to length(Tab) - 1 do
-                Nb.Add(Tab[i].toint64);
+            // for j := 1 to 5 do
+            for i := 0 to length(Tab) - 1 do
+              Nb.Add(Tab[i].toint64);
 
-            NbArrangements := CalculeArrangements(Arrangement, 0, Nb, -1);
+            // ArrangementFinal := Arrangement + '?' + Arrangement + '?' +
+            // Arrangement + '?' + Arrangement + '?' + Arrangement;
+            // NbArrangements := CalculeArrangements(ArrangementFinal, 0, Nb, -1);
+
+            TotalLigne := 0;
+
+            NbPourUne := CalculeArrangements(Arrangement, 0, Nb, -1);
+
+            for i := 0 to length(Tab) - 1 do
+              Nb.Add(Tab[i].toint64);
+            NbPourDeux := CalculeArrangements(Arrangement + '#' + Arrangement,
+              0, Nb, -1);
+
+            for i := 0 to length(Tab) - 1 do
+              Nb.Add(Tab[i].toint64);
+            NbPourTrois := CalculeArrangements(Arrangement + '#' + Arrangement +
+              '#' + Arrangement, 0, Nb, -1);
+
+            for i := 0 to length(Tab) - 1 do
+              Nb.Add(Tab[i].toint64);
+            NbPourQuatre := CalculeArrangements(Arrangement + '#' + Arrangement
+              + '#' + Arrangement + '#' + Arrangement, 0, Nb, -1);
+
+            for i := 0 to length(Tab) - 1 do
+              Nb.Add(Tab[i].toint64);
+            NbPourCinq := CalculeArrangements(Arrangement + '#' + Arrangement +
+              '#' + Arrangement + '#' + Arrangement + '#' + Arrangement,
+              0, Nb, -1);
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '.' +
+            // Arrangement + '.' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourUne * NbPourUne *
+              NbPourUne * NbPourUne;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '.' +
+            // Arrangement + '.' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourDeux * NbPourUne * NbPourUne *
+              NbPourUne;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '#' +
+            // Arrangement + '.' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourDeux * NbPourUne *
+              NbPourUne;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '#' +
+            // Arrangement + '.' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourTrois * NbPourUne * NbPourUne;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '.' +
+            // Arrangement + '#' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourUne * NbPourDeux *
+              NbPourUne;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '.' +
+            // Arrangement + '#' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourDeux * NbPourDeux * NbPourUne;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '#' +
+            // Arrangement + '#' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourTrois * NbPourUne;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '#' +
+            // Arrangement + '#' + Arrangement + '.' + Arrangement;
+            TotalLigne := TotalLigne + NbPourQuatre * NbPourUne;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '.' +
+            // Arrangement + '.' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourUne * NbPourUne *
+              NbPourDeux;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '.' +
+            // Arrangement + '.' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourDeux * NbPourUne * NbPourDeux;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '#' +
+            // Arrangement + '.' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourDeux * NbPourDeux;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '#' +
+            // Arrangement + '.' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourTrois * NbPourDeux;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '.' +
+            // Arrangement + '#' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourUne * NbPourTrois;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '.' +
+            // Arrangement + '#' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourDeux * NbPourTrois;
+
+            // ArrangementFinal := Arrangement + '.' + Arrangement + '#' +
+            // Arrangement + '#' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourUne * NbPourQuatre;
+
+            // ArrangementFinal := Arrangement + '#' + Arrangement + '#' +
+            // Arrangement + '#' + Arrangement + '#' + Arrangement;
+            TotalLigne := TotalLigne + NbPourCinq;
 
             MutexTotal.Acquire;
             try
               dec(NbLignes);
-              Total := Total + NbArrangements;
-              AddLog('Fin de ligne ' + Lig.tostring + ', Nb=' +
-                NbArrangements.tostring + ', Total=' + Total.tostring +
+              Total := Total + TotalLigne;
+              AddLog('Fin de ligne ' + Lig.tostring + ', Total ligne=' +
+                TotalLigne.tostring + ', Total=' + Total.tostring +
                 ', Lignes restantes=' + NbLignes.tostring);
             finally
               MutexTotal.release;
@@ -480,7 +578,7 @@ begin
           end;
         except
           on e: exception do
-            AddLog('Erreur : ' + e.Message);
+            AddLog('Erreur ligne ' + Lig.tostring + ' : ' + e.Message);
         end;
       end);
   finally
