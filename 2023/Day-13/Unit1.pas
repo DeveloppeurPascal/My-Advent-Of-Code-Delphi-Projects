@@ -73,8 +73,8 @@ type
     procedure AddAsh(x, y: integer); // point
     procedure AddRock(x, y: integer); // rock
     function IsRock(x, y: integer): boolean;
-    function GetExercice1: int64;
-    function GetExercice2(SecondCalcul: boolean = false): int64;
+    function GetExercice1(Vert: boolean = true; Horiz: boolean = true): int64;
+    function GetExercice2: int64;
   end;
 
 procedure TForm1.Button1Click(Sender: TObject);
@@ -297,88 +297,95 @@ begin
   SetElem(x, y, true);
 end;
 
-function TPattern.GetExercice1: int64;
+function TPattern.GetExercice1(Vert: boolean; Horiz: boolean): int64;
 var
   x, y: integer;
   i: integer;
   ok: boolean;
 begin
   result := 0;
-  i:=0;
+  i := 0;
 
-  // Test le miroir vertical
-  for x := 0 to self[0].count - 2 do
-    if IsRock(x, 0) = IsRock(x + 1, 0) then
-    begin
-      ok := true;
-      y := 0;
-      while ok and (y < count) do
+  if Vert then
+  begin
+    // Test le miroir vertical
+    for x := 0 to self[0].count - 2 do
+      if IsRock(x, 0) = IsRock(x + 1, 0) then
       begin
-        i := 0;
-        while ok and (x + i + 1 < self[0].count) and (x - i >= 0) do
+        ok := true;
+        y := 0;
+        while ok and (y < count) do
         begin
-          ok := IsRock(x - i, y) = IsRock(x + i + 1, y);
-          inc(i);
+          i := 0;
+          while ok and (x + i + 1 < self[0].count) and (x - i >= 0) do
+          begin
+            ok := IsRock(x - i, y) = IsRock(x + i + 1, y);
+            inc(i);
+          end;
+          inc(y);
         end;
-        inc(y);
+        if ok then
+        begin
+          Form1.AddLog('ok vertical ' + (x + 1).tostring);
+          result := result + (x + 1);
+          // x+1 car x commence à 0, les colonnes dans l'énoncé à 1
+//          break;
+        end
+        // else
+        // Form1.AddLog('not ok (x=' + x.tostring + ', y=' + (y - 1).tostring +
+        // ', i=' + (i - 1).tostring + ')');
       end;
-      if ok then
-      begin
-        Form1.AddLog('ok ' + x.tostring);
-        result := result + (x + 1);
-        // x+1 car x commence à 0, les colonnes dans l'énoncé à 1
-        break;
-      end
-      else
-        Form1.AddLog('not ok (x=' + x.tostring + ', y=' + (y - 1).tostring +
-          ', i=' + (i - 1).tostring + ')');
-    end;
+  end;
 
-  // Test le miroir horizontal
-  for y := 0 to count - 2 do
-    if IsRock(0, y) = IsRock(0, y + 1) then
-    begin
-      ok := true;
-      x := 0;
-      while ok and (x < self[y].count) do
+  if Horiz then
+  begin
+    // Test le miroir horizontal
+    for y := 0 to count - 2 do
+      if IsRock(0, y) = IsRock(0, y + 1) then
       begin
-        i := 0;
-        while ok and (y + i + 1 < count) and (y - i >= 0) do
+        ok := true;
+        x := 0;
+        while ok and (x < self[y].count) do
         begin
-          ok := IsRock(x, y - i) = IsRock(x, y + i + 1);
-          inc(i);
+          i := 0;
+          while ok and (y + i + 1 < count) and (y - i >= 0) do
+          begin
+            ok := IsRock(x, y - i) = IsRock(x, y + i + 1);
+            inc(i);
+          end;
+          inc(x);
         end;
-        inc(x);
+        if ok then
+        begin
+          Form1.AddLog('ok horizontal ' + (y + 1).tostring);
+          result := result + (y + 1) * 100;
+          // y+1 car y commence à 0, les lignes dans l'énoncé à 1
+//          break;
+        end
+        // else
+        // Form1.AddLog('not ok (x=' + (x - 1).tostring + ', y=' + y.tostring +
+        // ', i=' + (i - 1).tostring + ')');
       end;
-      if ok then
-      begin
-        Form1.AddLog('ok ' + y.tostring);
-        result := result + (y + 1) * 100;
-        // y+1 car y commence à 0, les lignes dans l'énoncé à 1
-        break;
-      end
-      else
-        Form1.AddLog('not ok (x=' + (x - 1).tostring + ', y=' + y.tostring +
-          ', i=' + (i - 1).tostring + ')');
-    end;
+  end;
 end;
 
-function TPattern.GetExercice2(SecondCalcul: boolean): int64;
+function TPattern.GetExercice2: int64;
 var
   x, y: integer;
   i: integer;
-  ok, HasChanged, FirstError, ErreurIsRock: boolean;
-  ErreurX, ErreurY: integer;
+  ok, FirstError: boolean;
+  ErrX1, ErrY1, ErrX2, ErrY2: integer;
+  StartValueH, StartValueV: int64;
+  nv: int64;
 begin
-  result := 0;
-  FirstError := true;
-  HasChanged := SecondCalcul;
-
-  if SecondCalcul then
-    Form1.AddLog('recalcul post détection d''erreur');
+  Form1.AddLog('Début de pattern - exerice 2');
+  StartValueH := GetExercice1(false, true);
+  Form1.AddLog('en H = ' + StartValueH.tostring);
+  StartValueV := GetExercice1(true, false);
+  Form1.AddLog('en V = ' + StartValueV.tostring);
 
   // Test le miroir horizontal
-  Form1.AddLog('horizontal');
+  FirstError := true;
   for y := 0 to count - 2 do
     if IsRock(0, y) = IsRock(0, y + 1) then
     begin
@@ -394,91 +401,90 @@ begin
           begin
             FirstError := false;
             ok := true;
-            ErreurX := x;
-            ErreurY := y - i;
-            ErreurIsRock := IsRock(x, y + i + 1);
+            ErrX1 := x;
+            ErrY1 := y - i;
+            ErrX2 := x;
+            ErrY2 := y + i + 1;
           end;
           inc(i);
         end;
         inc(x);
       end;
       if ok then
-      begin
-        Form1.AddLog('ok ' + y.tostring);
-        if (not FirstError) and (not HasChanged) then
-        begin
-          Form1.AddLog('erreur en ' + ErreurX.tostring + ',' +
-            ErreurY.tostring + '.');
-          AddToLog;
-          Form1.AddLog('-');
-          SetElem(ErreurX, ErreurY, ErreurIsRock);
-          HasChanged := true;
-          AddToLog;
-        end;
-        result := result + (y + 1) * 100;
-        // y+1 car y commence à 0, les lignes dans l'énoncé à 1
-        break;
-      end
+        break
       else
-      begin
-        Form1.AddLog('not ok (x=' + (x - 1).tostring + ', y=' + y.tostring +
-          ', i=' + (i - 1).tostring + ')');
         FirstError := true;
-      end;
     end;
-
-  // Test le miroir vertical
-  Form1.AddLog('vertical');
-  for x := 0 to self[0].count - 2 do
-    if IsRock(x, 0) = IsRock(x + 1, 0) then
+  if ok and (not FirstError) then
+  begin
+    Form1.AddLog('horizontal avant correction erreur');
+    self.AddToLog;
+    SetElem(ErrX1, ErrY1, false);
+    SetElem(ErrX2, ErrY2, false);
+    Form1.AddLog('horizontal après correction erreur 1');
+    self.AddToLog;
+    nv := GetExercice1(true, false);
+    if nv = StartValueV then
     begin
-      ok := true;
-      y := 0;
-      while ok and (y < count) do
+      SetElem(ErrX1, ErrY1, true);
+      SetElem(ErrX2, ErrY2, true);
+      Form1.AddLog('horizontal après correction erreur 1');
+      self.AddToLog;
+    end;
+  end
+  else
+  begin
+    // Test le miroir vertical
+    FirstError := true;
+    for x := 0 to self[0].count - 2 do
+      if IsRock(x, 0) = IsRock(x + 1, 0) then
       begin
-        i := 0;
-        while ok and (x + i + 1 < self[0].count) and (x - i >= 0) do
+        ok := true;
+        y := 0;
+        while ok and (y < count) do
         begin
-          ok := IsRock(x - i, y) = IsRock(x + i + 1, y);
-          if (not ok) and FirstError then
+          i := 0;
+          while ok and (x + i + 1 < self[0].count) and (x - i >= 0) do
           begin
-            FirstError := false;
-            ok := true;
-            ErreurX := x - i;
-            ErreurY := y;
-            ErreurIsRock := IsRock(x + i + 1, y);
+            ok := IsRock(x - i, y) = IsRock(x + i + 1, y);
+            if (not ok) and FirstError then
+            begin
+              FirstError := false;
+              ok := true;
+              ErrX1 := x - i;
+              ErrY1 := y;
+              ErrX2 := x + i + 1;
+              ErrY2 := y;
+            end;
+            inc(i);
           end;
-          inc(i);
+          inc(y);
         end;
-        inc(y);
+        if ok then
+          break
+        else
+          FirstError := true;
       end;
-      if ok then
+    if ok and (not FirstError) then
+    begin
+      Form1.AddLog('vertical avant correction erreur');
+      self.AddToLog;
+      SetElem(ErrX1, ErrY1, false);
+      SetElem(ErrX2, ErrY2, false);
+      Form1.AddLog('vertical après correction erreur 1');
+      self.AddToLog;
+      nv := GetExercice1(false, true);
+      if nv = StartValueH then
       begin
-        Form1.AddLog('ok ' + x.tostring);
-        if (not FirstError) and (not HasChanged) then
-        begin
-          Form1.AddLog('erreur en ' + ErreurX.tostring + ',' +
-            ErreurY.tostring + '.');
-          AddToLog;
-          Form1.AddLog('-');
-          SetElem(ErreurX, ErreurY, ErreurIsRock);
-          HasChanged := true;
-          AddToLog;
-        end;
-        result := result + (x + 1);
-        // x+1 car x commence à 0, les colonnes dans l'énoncé à 1
-        break;
-      end
-      else
-      begin
-        Form1.AddLog('not ok (x=' + x.tostring + ', y=' + (y - 1).tostring +
-          ', i=' + (i - 1).tostring + ')');
-         FirstError := true;
+        SetElem(ErrX1, ErrY1, true);
+        SetElem(ErrX2, ErrY2, true);
+        Form1.AddLog('vertical après correction erreur 1');
+        self.AddToLog;
       end;
     end;
+  end;
 
-  if (not SecondCalcul) and HasChanged then
-    result := GetExercice2(true);
+  result := GetExercice1;
 end;
 
 procedure TPattern.AddToLog;
