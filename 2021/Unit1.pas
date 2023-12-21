@@ -2894,7 +2894,7 @@ begin
   // Solution provenant de
   // https://github.com/mikewarot/Advent_of_Code_in_Pascal/blob/master/2021/advent2021_15a.lpr
   //
-  // algorythme utilisé : Dijkstra
+  // algorithme utilisé : Dijkstra
   // https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
 
   // Stockage de la grille de travail
