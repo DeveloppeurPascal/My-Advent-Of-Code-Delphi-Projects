@@ -329,6 +329,8 @@ var
   NbCases: int64;
   NBPoints: int64;
   i: int64;
+  EstDansLePolygone: boolean;
+  NouvelleSerieATester: boolean;
 begin
   XMin := maxint;
   YMin := maxint;
@@ -349,7 +351,7 @@ begin
   vy := -1;
 
   // On "dessine" un polygone avec les données fournies.
-  AddLog('1/4 - Calcul polygone');
+  AddLog('1/5 - Calcul polygone');
   for Lig := 0 to length(Lignes) - 1 do
   begin
     if Lignes[Lig].isempty then
@@ -359,7 +361,8 @@ begin
     end;
 
     Tab := Lignes[Lig].split([' ']);
-    Tab[2]:=Tab[2].ToUpper.substring(2,length(Tab[2])-3); // "(#"+xxxxxx+")"
+    Tab[2] := Tab[2].ToUpper.substring(2, length(Tab[2]) - 3);
+    // "(#"+xxxxxx+")"
 
     Direction := Tab[2].Chars[length(Tab[2]) - 1];
     case Direction of
@@ -385,22 +388,23 @@ begin
         end;
     end;
 
-//    var s : string := '';
+    // var s : string := '';
     NbCases := 0;
-    for i := 0 to (length(Tab[2])- 2) do begin
-    // on retire le '#' et la direction en fin de chaine
+    for i := 0 to (length(Tab[2]) - 2) do
+    begin
+      // on retire le '#' et la direction en fin de chaine
       case Tab[2].Chars[i] of
         '0' .. '9':
           NbCases := NbCases * 16 + ord(Tab[2].Chars[i]) - ord('0');
         'A' .. 'F':
           NbCases := NbCases * 16 + ord(Tab[2].Chars[i]) - ord('A') + 10;
-          else
-          addlog('erreur');
+      else
+        AddLog('erreur');
       end;
-//      addlog(nbcases.tostring);
-//      s := Tab[2].Chars[i]+s;
+      // addlog(nbcases.tostring);
+      // s := Tab[2].Chars[i]+s;
     end;
-//    AddLog('"'+Tab[2]+'" '+Direction+'-'+s+' => '+NbCases.tostring);
+    // AddLog('"'+Tab[2]+'" '+Direction+'-'+s+' => '+NbCases.tostring);
 
     x := x + vx * NbCases;
     y := y + vy * NbCases;
@@ -424,24 +428,21 @@ begin
     (Polygone[0].y = Polygone[NBPoints - 1].y), 'Polygone non fermé.');
 
   // On parcourt tous les points dans la zone pour savoir s'ils sont dans ou hors du polygone.
-  AddLog('2/4 - Test contenu du polygone');
+  AddLog('2/5 - Initialisation de la grille');
   setlength(Grille, XMax - XMin + 1);
   for x := XMin to XMax do
   begin
     setlength(Grille[x - XMin], YMax - YMin + 1);
     for y := YMin to YMax do
       try
-        Grille[x - XMin, y - YMin] := PointInPolygon(TPoint.Create(x, y),
-          Polygone);
+        Grille[x - XMin, y - YMin] := false;
       except
         AddLog('Bug : ' + x.tostring + ',' + y.tostring);
       end;
   end;
 
-  // DrawGrille;
-
   // On ajoute le contour car l'algorithme de test ne prend pas les bordures en bas et à droite
-  AddLog('3/4 - Dessine polygone');
+  AddLog('3/5 - Dessine le polygone dans la grille');
   x := Polygone[0].x;
   y := Polygone[0].y;
   for i := 1 to length(Polygone) - 1 do
@@ -460,8 +461,29 @@ begin
 
   // DrawGrille;
 
+  // On parcourt tous les points dans la zone pour savoir s'ils sont dans ou hors du polygone.
+  AddLog('4/5 - Test des cases de la grille, dans le polygone ou pas');
+  NouvelleSerieATester := true;
+  for x := XMin to XMax do
+    for y := YMin to YMax do
+      try
+        if Grille[x - XMin, y - YMin] then
+          // On est sur un trait, on force le recalcul
+          NouvelleSerieATester := true
+        else // On est sur une cellule classique, on la teste ou applique la valeur de la précédente
+        begin
+          if NouvelleSerieATester then
+            EstDansLePolygone := PointInPolygon(TPoint.Create(x, y), Polygone);
+          Grille[x - XMin, y - YMin] := EstDansLePolygone;
+        end;
+      except
+        AddLog('Bug : ' + x.tostring + ',' + y.tostring);
+      end;
+
+  // DrawGrille;
+
   // On compte le nombre de "true" dans la grille.
-  AddLog('4/4 - Comptage');
+  AddLog('5/5 - Comptage');
   result := 0;
   for x := XMin to XMax do
     for y := YMin to YMax do
