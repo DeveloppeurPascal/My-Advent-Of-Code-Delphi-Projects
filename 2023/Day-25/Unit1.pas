@@ -17,46 +17,69 @@ uses
   System.Generics.Collections;
 
 Const
-  // CDataFile = '..\..\input.txt';
-  CDataFile = '..\..\input-test.txt';
+  CDataFile = '..\..\input.txt';
+  // CDataFile = '..\..\input-test.txt';
 
 type
-  TLiaisons = class(TDictionary<string, boolean>)
+  TModulesList = class;
+
+  /// <summary>
+  /// Liaison entre deux modules
+  /// </summary>
+  TLiaison = class
+  public
+    IDModuleA, IDModuleB: integer;
+    constructor Create(AIDModuleA, AIDModuleB: integer);
+  end;
+
+  /// <summary>
+  /// Liste des liaisons entre des modules
+  /// </summary>
+  TLiaisonsList = class(TObjectList<TLiaison>)
+  public
+    procedure AjouteLiaison(IDModuleA, IDModuleB: integer);
+    function ToString(Modules: TModulesList): string;
+  end;
+
+  /// <summary>
+  /// Liste des ID de modules
+  /// </summary>
+  TIDModulesList = class(TList<integer>)
   private
   protected
   public
-    function ToString(OnlyActif: boolean = false): string;
+    function ToString(Modules: TModulesList): string;
   end;
 
-  TModuleLie = class
+  /// <summary>
+  /// Contenu d'un module
+  /// </summary>
+  TModule = class
   private
-    FEnabled: boolean;
-    FManaged: boolean;
-    procedure SetEnabled(const Value: boolean);
+    FModuleName: string;
+    FModulesLies: TIDModulesList;
+
+    procedure SetModulesLies(const Value: TIDModulesList);
+    procedure SetModuleName(const Value: string);
+  protected
   public
-    ModuleA, ModuleB: string;
-    TagBool: boolean;
-    property Enabled: boolean read FEnabled write SetEnabled;
-    constructor Create(A, B: string);
+    property ModuleName: string read FModuleName write SetModuleName;
+    property ModulesLies: TIDModulesList read FModulesLies write SetModulesLies;
+    constructor Create(AModuleName: string);
+    destructor Destroy; override;
+    procedure AjouteLienAvecModule(ModuleID: integer);
   end;
 
-  TModulesLies = class(TObjectList<TModuleLie>)
-  public
-    procedure AjouteLiaison(ModuleA, ModuleB: string);
-    function GetListes(Const ListeLiaisons: TModulesLies): tstringlist;
-  end;
-
-  TModules = class(TObjectDictionary<string, TLiaisons>)
+  /// <summary>
+  /// Liste des modules
+  /// </summary>
+  TModulesList = class(TObjectList<TModule>)
   private
   protected
   public
     procedure AjouteLiaison(ModuleA, ModuleB: string);
-    procedure RetireLiaison(ModuleA, ModuleB: string);
-    function ToString: string;
-    function GetModulesLies(AModule: string; ACurListe: TLiaisons = nil)
-      : TLiaisons;
-    function GetListesModulesLies: tstringlist;
-    function GetListeLiaisons: TModulesLies;
+    function ToString: string; override;
+    function GetLiaisons: TLiaisonsList;
   end;
 
   TForm1 = class(TForm)
@@ -66,9 +89,9 @@ type
     Edit1: TEdit;
     Edit2: TEdit;
     Memo1: TMemo;
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
+    procedure Button1Click(Sender: tobject);
+    procedure Button2Click(Sender: tobject);
+    procedure FormCreate(Sender: tobject);
   private
     procedure BeginTraitement;
     procedure EndTraitement;
@@ -79,7 +102,9 @@ type
     function MsToTimeString(ms: int64): string;
   public
     { Déclarations publiques }
-    function CoupeLiaisonsJusquAFinExercice1(Modules: TModules): tstringlist;
+    function hasTwoModulesSets(Modules: TModulesList; Liaisons: TLiaisonsList;
+      IDCanceledLiaison1, IDCanceledLiaison2, IDCanceledLiaison3: integer;
+      var NbModulesInSet1, NbModulesInSet2: integer): boolean;
   end;
 
 var
@@ -95,10 +120,10 @@ uses
   System.RegularExpressions,
   System.Generics.Defaults,
   System.Diagnostics,
-  System.StrUtils,
+  System.threading,
   System.IOUtils;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TForm1.Button1Click(Sender: tobject);
 begin
   BeginTraitement;
   Edit1.Text := 'Calcul en cours';
@@ -135,7 +160,7 @@ begin
   end;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TForm1.Button2Click(Sender: tobject);
 begin
   BeginTraitement;
   Edit2.Text := 'Calcul en cours';
@@ -172,53 +197,6 @@ begin
   end;
 end;
 
-function TForm1.CoupeLiaisonsJusquAFinExercice1(Modules: TModules): tstringlist;
-var
-  ListeLiaisons: TModulesLies;
-  i, j, k: integer;
-  ok: boolean;
-begin
-  result := nil;
-  ListeLiaisons := Modules.GetListeLiaisons;
-  try
-    AddLog(ListeLiaisons.count.ToString + ' liaisons entre modules');
-    ok := false;
-    for i := 0 to ListeLiaisons.count - 3 do
-    begin
-      ListeLiaisons[i].Enabled := false;
-      for j := i + 1 to ListeLiaisons.count - 2 do
-      begin
-        ListeLiaisons[j].Enabled := false;
-        for k := j + 1 to ListeLiaisons.count - 1 do
-        begin
-          ListeLiaisons[k].Enabled := false;
-          result := ListeLiaisons.GetListes;
-          if result.count = 2 then
-          begin
-            ok := true;
-            break;
-          end
-          else
-          begin
-            result.free;
-            ListeLiaisons[k].Enabled := true;
-          end;
-        end;
-        if ok then
-          break
-        else
-          ListeLiaisons[j].Enabled := true;
-      end;
-      if ok then
-        break
-      else
-        ListeLiaisons[i].Enabled := true;
-    end;
-  finally
-    ListeLiaisons.free;
-  end;
-end;
-
 procedure TForm1.AddLog(const S: String);
 begin
   tthread.Synchronize(nil,
@@ -250,17 +228,21 @@ function TForm1.Exercice1: int64;
 var
   Lig: integer;
   Lignes: TArray<string>;
-  Modules: TModules;
+  Modules: TModulesList;
   Tab: TArray<string>;
-  i: integer;
-  sl: tstringlist;
+  i, j, k: integer;
+  Liaisons: TLiaisonsList;
+  NbModulesInSet1, NbModulesInSet2: integer;
 begin
-  Modules := TModules.Create([tdictionaryownership.doOwnsValues]);
-  try
-    AddLog('lecture des données');
+  result := -1;
 
+  // contient la liste des noms de modules
+  Modules := TModulesList.Create;
+  try
+
+    // Chargement du fichier et calcul des liaisons entre modules
+    AddLog('Chargement des données');
     Lignes := tfile.ReadAllLines(CDataFile);
-    result := 0;
     for Lig := 0 to length(Lignes) - 1 do
     begin
       if Lignes[Lig].trim.isempty then
@@ -270,24 +252,45 @@ begin
       for i := 1 to length(Tab) - 1 do
         Modules.AjouteLiaison(Tab[0], Tab[i]);
     end;
+    // AddLog(Modules.ToString);
 
-    AddLog(Modules.ToString);
-
-    AddLog('lancement du calcul');
-
-    sl := CoupeLiaisonsJusquAFinExercice1(Modules);
+    AddLog('Calcul des liaisons entre module');
+    Liaisons := Modules.GetLiaisons;
     try
-      if sl.count = 2 then
+      // AddLog(Liaisons.ToString(Modules));
+
+      AddLog('Recherche des liaisons à supprimer');
+
+{$REGION 'trop lent sur de gros volumes'}
+      if false then
       begin
-        Tab := sl[0].trim.split([' ']);
-        result := length(Tab);
-        Tab := sl[1].trim.split([' ']);
-        result := result * length(Tab);
-      end
-      else
-        result := -1;
+        for i := 0 to Liaisons.count - 1 - 2 do
+        begin
+          for j := i + 1 to Liaisons.count - 1 - 1 do
+          begin
+            for k := j + 1 to Liaisons.count - 1 do
+            begin
+              // addlog(i.tostring+'-'+j.tostring+'-'+k.tostring);
+              // tparallel.for(j + 1, Liaisons.count - 1, procedure begin
+              if hasTwoModulesSets(Modules, Liaisons, i, j, k, NbModulesInSet1,
+                NbModulesInSet2) then
+              begin
+                // SetResult(NbModulesInSet1 * NbModulesInSet2);
+                result := NbModulesInSet1 * NbModulesInSet2;
+                break;
+              end;
+              // end);
+            end;
+            if result > 0 then
+              break;
+          end;
+          if result > 0 then
+            break;
+        end;
+      end;
+{$ENDREGION}
     finally
-      sl.free;
+      Liaisons.free;
     end;
   finally
     Modules.free;
@@ -307,11 +310,107 @@ begin
   end;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TForm1.FormCreate(Sender: tobject);
 begin
   Edit1.Text := '';
   Edit2.Text := '';
   Memo1.Clear;
+end;
+
+function TForm1.hasTwoModulesSets(Modules: TModulesList;
+Liaisons: TLiaisonsList; IDCanceledLiaison1, IDCanceledLiaison2,
+  IDCanceledLiaison3: integer; var NbModulesInSet1, NbModulesInSet2
+  : integer): boolean;
+
+  function GetNbElementsInSet(ID: integer;
+  var ModulesNonTraites: TList<integer>;
+  AModulesLies: TList < integer >= nil): integer;
+  var
+    ModulesLies: TList<integer>;
+    IDModuleLie, j: integer;
+    IDModuleA, IDModuleB: integer;
+  begin
+    if ModulesNonTraites.Contains(ID) then
+      ModulesNonTraites.remove(ID)
+    else
+      // begin
+      // AddLog('sortie');
+      exit;
+    // end;
+
+    if assigned(AModulesLies) then
+      ModulesLies := AModulesLies
+    else
+      ModulesLies := TList<integer>.Create;
+
+    try
+
+      if ModulesLies.Contains(ID) then // existe déjà, ça ne devrait pas
+        raise exception.Create('anomalie');
+
+      ModulesLies.Add(ID);
+
+      for j := 0 to Modules[ID].ModulesLies.count - 1 do
+      begin
+        IDModuleLie := Modules[ID].ModulesLies[j];
+
+        IDModuleA := min(ID, IDModuleLie);
+        IDModuleB := max(ID, IDModuleLie);
+
+        if ((IDModuleA = Liaisons[IDCanceledLiaison1].IDModuleA) and
+          (IDModuleB = Liaisons[IDCanceledLiaison1].IDModuleB)) or
+          ((IDModuleA = Liaisons[IDCanceledLiaison2].IDModuleA) and
+          (IDModuleB = Liaisons[IDCanceledLiaison2].IDModuleB)) or
+          ((IDModuleA = Liaisons[IDCanceledLiaison3].IDModuleA) and
+          (IDModuleB = Liaisons[IDCanceledLiaison3].IDModuleB)) then
+          // liaisons coupées, on ne fait rien
+          // AddLog('liaison coupée')
+        else
+          GetNbElementsInSet(IDModuleLie, ModulesNonTraites, ModulesLies);
+      end;
+
+    finally
+      result := ModulesLies.count;
+      if not assigned(AModulesLies) then
+        ModulesLies.free;
+    end;
+  end;
+
+var
+  ID: integer;
+  ModulesNonTraites: TList<integer>;
+begin
+  result := false;
+  ModulesNonTraites := TList<integer>.Create;
+  try
+    for ID := 0 to Modules.count - 1 do
+      ModulesNonTraites.Add(ID);
+
+    // AddLog(ModulesNonTraites.count.ToString);
+
+    if ModulesNonTraites.count > 0 then
+      NbModulesInSet1 := GetNbElementsInSet(ModulesNonTraites[0],
+        ModulesNonTraites)
+    else
+      NbModulesInSet1 := -1;
+
+    // AddLog(NbModulesInSet1.ToString);
+    // AddLog(ModulesNonTraites.count.ToString);
+
+    if ModulesNonTraites.count > 0 then
+      NbModulesInSet2 := GetNbElementsInSet(ModulesNonTraites[0],
+        ModulesNonTraites)
+    else
+      NbModulesInSet2 := -1;
+
+    // AddLog(NbModulesInSet2.ToString);
+    // AddLog(ModulesNonTraites.count.ToString);
+
+    result := (ModulesNonTraites.count = 0) and (NbModulesInSet1 > 0) and
+      (NbModulesInSet2 > 0);
+  finally
+    ModulesNonTraites.free;
+  end;
 end;
 
 function TForm1.MsToTimeString(ms: int64): string;
@@ -327,178 +426,139 @@ begin
   result := TimeToStr(dt) + ',' + S;
 end;
 
-{ TModules }
+{ TModule }
 
-procedure TModules.AjouteLiaison(ModuleA, ModuleB: string);
+procedure TModule.AjouteLienAvecModule(ModuleID: integer);
 begin
-  if ModuleA.trim.isempty or ModuleB.trim.isempty or (ModuleA = ModuleB) then
-    exit;
-
-  if not self.ContainsKey(ModuleA) then
-    Add(ModuleA, TLiaisons.Create);
-
-  if not self[ModuleA].ContainsKey(ModuleB) then
-    self[ModuleA].Add(ModuleB, true);
-
-  if not self.ContainsKey(ModuleB) then
-    Add(ModuleB, TLiaisons.Create);
-
-  if not self[ModuleB].ContainsKey(ModuleA) then
-    self[ModuleB].Add(ModuleA, true);
+  if not FModulesLies.Contains(ModuleID) then
+    FModulesLies.Add(ModuleID);
 end;
 
-function TModules.GetListeLiaisons: TModulesLies;
-var
-  ModuleName: string;
-  S: string;
-begin
-  result := TModulesLies.Create;
-  for ModuleName in self.keys do
-    for S in self[ModuleName].keys do
-      result.AjouteLiaison(ModuleName, S);
-end;
-
-function TModules.GetListesModulesLies: tstringlist;
-var
-  S: string;
-  ModulesLies: TLiaisons;
-  sResult: string;
-begin
-  result := tstringlist.Create;
-  for S in self.keys do
-  begin
-    ModulesLies := GetModulesLies(S);
-    try
-      sResult := ModulesLies.ToString;
-      if not result.Contains(sResult) then
-        result.Add(sResult);
-    finally
-      ModulesLies.free;
-    end;
-  end;
-end;
-
-function TModules.GetModulesLies(AModule: string; ACurListe: TLiaisons)
-  : TLiaisons;
-var
-  i: integer;
-  Modif: boolean;
-  Liste: TLiaisons;
-  CurModule: string;
-begin
-  if assigned(ACurListe) then
-    result := ACurListe
-  else
-    result := TLiaisons.Create;
-
-  if not result.ContainsKey(AModule) then
-    result.Add(AModule, true);
-
-  for CurModule in self[AModule].keys do
-    if self[AModule][CurModule] and (not result.ContainsKey(CurModule)) then
-      result := GetModulesLies(CurModule, result);
-end;
-
-procedure TModules.RetireLiaison(ModuleA, ModuleB: string);
-begin
-  self[ModuleA].Remove(ModuleB);
-  self[ModuleB].Remove(ModuleA);
-end;
-
-function TModules.ToString: string;
-var
-  S: string;
-  ModulesLies: TLiaisons;
-begin
-  result := '';
-  for S in self.keys do
-  begin
-    result := result + S + ' :' + self[S].ToString + slinebreak;
-    ModulesLies := GetModulesLies(S);
-    try
-      result := result + '=> ' + ModulesLies.ToString + slinebreak;
-    finally
-      ModulesLies.free;
-    end;
-  end;
-end;
-
-{ TLiaisons }
-
-function TLiaisons.ToString(OnlyActif: boolean): string;
-var
-  ModuleName: string;
-begin
-  result := '';
-  for ModuleName in keys do
-    if (not OnlyActif) or (OnlyActif and self[ModuleName]) then
-      result := result + ' ' + ModuleName;
-end;
-
-{ TModuleLie }
-
-constructor TModuleLie.Create(A, B: string);
+constructor TModule.Create(AModuleName: string);
 begin
   inherited Create;
-  ModuleA := A;
-  ModuleB := B;
-  FEnabled := true;
-  TagBool := false;
+  FModuleName := AModuleName;
+  FModulesLies := TIDModulesList.Create;
 end;
 
-procedure TModuleLie.SetEnabled(const Value: boolean);
+destructor TModule.Destroy;
 begin
-  FEnabled := Value;
+  FModulesLies.free;
+  inherited;
 end;
 
-{ TModulesLies }
+procedure TModule.SetModulesLies(const Value: TIDModulesList);
+begin
+  FModulesLies := Value;
+end;
 
-procedure TModulesLies.AjouteLiaison(ModuleA, ModuleB: string);
+procedure TModule.SetModuleName(const Value: string);
+begin
+  FModuleName := Value;
+end;
+
+{ TModulesList }
+
+procedure TModulesList.AjouteLiaison(ModuleA, ModuleB: string);
 var
-  m1, m2: string;
+  IDModuleA, IDModuleB: integer;
+  ID: integer;
+begin
+  if ModuleA.isempty or ModuleB.isempty or (ModuleA = ModuleB) then
+    exit;
+
+  // cherche les ID des deux modules s'ils existent
+  IDModuleA := -1;
+  IDModuleB := -1;
+  for ID := 0 to self.count - 1 do
+    if ModuleA = self[ID].ModuleName then
+      IDModuleA := ID
+    else if ModuleB = self[ID].ModuleName then
+      IDModuleB := ID;
+
+  // crée le ModuleA car non trouvé dans la liste
+  if (IDModuleA < 0) then
+    IDModuleA := Add(TModule.Create(ModuleA));
+
+  // crée le ModuleB car non trouvé dans la liste
+  if (IDModuleB < 0) then
+    IDModuleB := Add(TModule.Create(ModuleB));
+
+  self[IDModuleA].AjouteLienAvecModule(IDModuleB);
+  self[IDModuleB].AjouteLienAvecModule(IDModuleA);
+end;
+
+function TModulesList.GetLiaisons: TLiaisonsList;
+var
+  ID, j: integer;
+begin
+  result := TLiaisonsList.Create;
+  for ID := 0 to count - 1 do
+    for j := 0 to self[ID].ModulesLies.count - 1 do
+      result.AjouteLiaison(ID, self[ID].ModulesLies[j]);
+end;
+
+function TModulesList.ToString: string;
+var
+  ID: integer;
+begin
+  result := '';
+  for ID := 0 to count - 1 do
+    result := result + self[ID].ModuleName + ':' + self[ID].ModulesLies.ToString
+      (self) + slinebreak;
+end;
+
+{ TIDModulesList }
+
+function TIDModulesList.ToString(Modules: TModulesList): string;
+var
+  i: integer;
+begin
+  result := '';
+  for i := 0 to count - 1 do
+    result := result + ' ' + Modules[self[i]].ModuleName;
+end;
+
+{ TLiaisonsList }
+
+procedure TLiaisonsList.AjouteLiaison(IDModuleA, IDModuleB: integer);
+var
+  idA, idB: integer;
   i: integer;
   trouve: boolean;
 begin
-  if string.Compare(ModuleA, ModuleB) < 0 then
-  begin
-    m1 := ModuleA;
-    m2 := ModuleB;
-  end
-  else
-  begin
-    m1 := ModuleB;
-    m2 := ModuleA;
-  end;
+  idA := min(IDModuleA, IDModuleB);
+  idB := max(IDModuleA, IDModuleB);
 
   trouve := false;
   for i := 0 to count - 1 do
-    if (self[i].ModuleA = m1) and (self[i].ModuleB = m2) then
-    begin
-      trouve := true;
+  begin
+    trouve := (idA = self[i].IDModuleA) and (idB = self[i].IDModuleB);
+    if trouve then
       break;
-    end;
+  end;
 
   if not trouve then
-    Add(TModuleLie.Create(m1, m2));
+    Add(TLiaison.Create(idA, idB));
 end;
 
-function TModulesLies.GetListes(const ListeLiaisons: TModulesLies): tstringlist;
+function TLiaisonsList.ToString(Modules: TModulesList): string;
 var
-  i, j: integer;
-  S: string;
+  i: integer;
 begin
-  for i := 0 to ListeLiaisons.count - 1 do
-    ListeLiaisons[i].TagBool := false;
+  result := '';
+  for i := 0 to count - 1 do
+    result := result + Modules[self[i].IDModuleA].ModuleName + ' - ' +
+      Modules[self[i].IDModuleB].ModuleName + slinebreak;
+end;
 
-  result := tstringlist.Create;
+{ TLiaison }
 
-  for i := 0 to ListeLiaisons.count - 1 do begin
-  s:='';
-    while (ListeLiaisons[i].Enabled and not ListeLiaisons[i].TagBool) do
-    begin
-    // TODO
-    end;
-  end;
+constructor TLiaison.Create(AIDModuleA, AIDModuleB: integer);
+begin
+  inherited Create;
+  IDModuleA := AIDModuleA;
+  IDModuleB := AIDModuleB;
 end;
 
 initialization
