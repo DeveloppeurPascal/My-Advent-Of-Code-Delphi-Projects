@@ -1,5 +1,15 @@
 unit Unit1;
 
+// La solution de départ de l'exercice 1 (parcourt de tous les cas possibles)
+// passe rapidement sur le jeu de données de test mais pas sur le vrai pour des
+// raisons classiques de volumétrie.
+//
+// La solution finale implémentée ici et proposée par @NineBerry et disponible
+// en C# sur https://dotnetfiddle.net/OiEI9S simplifie le traitement: on
+// parcourt des chemins entre deux modules au hasard et on regarde à chaque fois
+// que l'on atteint la destination si les liaisons par lesquelles on passe le
+// plus souvent sont bien celles que l'on doit couper.
+
 interface
 
 uses
@@ -29,7 +39,9 @@ type
   TLiaison = class
   public
     IDModuleA, IDModuleB: integer;
+    Occurence: integer;
     constructor Create(AIDModuleA, AIDModuleB: integer);
+    function ToString(Modules: TModulesList): string;
   end;
 
   /// <summary>
@@ -39,6 +51,9 @@ type
   public
     procedure AjouteLiaison(IDModuleA, IDModuleB: integer);
     function ToString(Modules: TModulesList): string;
+    procedure SortDescend;
+    procedure Incremente(IDModuleA, IDModuleB: integer;
+      { pour logs => } Modules: TModulesList);
   end;
 
   /// <summary>
@@ -80,6 +95,11 @@ type
     procedure AjouteLiaison(ModuleA, ModuleB: string);
     function ToString: string; override;
     function GetLiaisons: TLiaisonsList;
+    /// <summary>
+    /// parcourt aléatoire entre deux modules afin de sortir un chemin et trouver les noeuds qui reviennent le plus
+    /// </summary>
+    function ChemineEntre(IDModuleA, IDModuleB: integer; Modules: TModulesList;
+      var Liaisons: TLiaisonsList): boolean;
   end;
 
   TForm1 = class(TForm)
@@ -261,6 +281,25 @@ begin
 
       AddLog('Recherche des liaisons à supprimer');
 
+      while (result < 0) do
+      begin
+        // AddLog('chemine');
+        if Modules.ChemineEntre(random(Modules.count), random(Modules.count),
+          Modules, Liaisons) then
+        begin
+          Liaisons.SortDescend;
+          // AddLog('sort');
+          if hasTwoModulesSets(Modules, Liaisons, 0, 1, 2, NbModulesInSet1,
+            NbModulesInSet2) then
+            // begin
+            result := NbModulesInSet1 * NbModulesInSet2;
+          // AddLog('result = ' + result.ToString);
+          // end
+          // else
+          // AddLog('pas de solution');
+        end;
+      end;
+
 {$REGION 'trop lent sur de gros volumes'}
       if false then
       begin
@@ -298,16 +337,18 @@ begin
 end;
 
 function TForm1.Exercice2: int64;
-var
-  Lig: integer;
-  Lignes: TArray<string>;
+// var
+// Lig: integer;
+// Lignes: TArray<string>;
 begin
-  Lignes := tfile.ReadAllLines(CDataFile);
-  result := 0;
-  for Lig := 0 to length(Lignes) - 1 do
-  begin
-    // TODO : à compléter
-  end;
+  // Lignes := tfile.ReadAllLines(CDataFile);
+  // result := 0;
+  // for Lig := 0 to length(Lignes) - 1 do
+  // begin
+  // // TODO : à compléter
+  // end;
+  ShowMessage
+    ('pas d''exercice 2 pour le jour 25, il faut avoir toutes les étoiles du mois pour obtenir la dernière.');
 end;
 
 procedure TForm1.FormCreate(Sender: tobject);
@@ -488,6 +529,63 @@ begin
   self[IDModuleB].AjouteLienAvecModule(IDModuleA);
 end;
 
+function TModulesList.ChemineEntre(IDModuleA, IDModuleB: integer;
+Modules: TModulesList; var Liaisons: TLiaisonsList): boolean;
+var
+  Chemin: TList<integer>;
+  CurModule, CurModule2: integer;
+  i: integer;
+  TempID, TempID2: integer;
+  FirstTry: boolean;
+begin
+  if IDModuleA = IDModuleB then
+    result := false
+  else
+  begin
+    Chemin := TList<integer>.Create;
+    try
+      CurModule := IDModuleA;
+      while (CurModule <> IDModuleB) and (not Chemin.Contains(CurModule)) do
+      begin
+        Chemin.Add(CurModule);
+        TempID := random(Modules[CurModule].ModulesLies.count);
+        // assert(TempID < Modules[CurModule].ModulesLies.count, 'random error');
+        // if TempID >= Modules[CurModule].ModulesLies.count then
+        // raise exception.Create('random error');
+        TempID2 := TempID;
+        // FirstTry := true;
+        repeat
+          CurModule2 := Modules[CurModule].ModulesLies[TempID2];
+          if Chemin.Contains(CurModule2) then
+            if TempID2 < Modules[CurModule].ModulesLies.count - 1 then
+              TempID2 := TempID2 + 1
+            else
+            begin
+              TempID2 := 0;
+              // if FirstTry then
+              // FirstTry := false
+              // else
+              // raise exception.Create('problem ' + TempID.ToString + ' / ' +
+              // Modules[CurModule].ModulesLies.count.ToString + ' / ' +
+              // TempID2.ToString);
+            end;
+        until (TempID = TempID2) or (not Chemin.Contains(CurModule2));
+        CurModule := CurModule2;
+      end;
+
+      if (CurModule = IDModuleB) then
+      begin
+        Chemin.Add(CurModule);
+        for i := 1 to Chemin.count - 1 do
+          Liaisons.Incremente(Chemin[i - 1], Chemin[i], Modules);
+        result := true;
+      end;
+    finally
+      Chemin.free;
+    end;
+  end;
+end;
+
 function TModulesList.GetLiaisons: TLiaisonsList;
 var
   ID, j: integer;
@@ -542,6 +640,44 @@ begin
     Add(TLiaison.Create(idA, idB));
 end;
 
+procedure TLiaisonsList.Incremente(IDModuleA, IDModuleB: integer;
+Modules: TModulesList);
+var
+  idA, idB: integer;
+  i: integer;
+  trouve: boolean;
+begin
+  idA := min(IDModuleA, IDModuleB);
+  idB := max(IDModuleA, IDModuleB);
+
+  trouve := false;
+  i := -1;
+  repeat
+    inc(i);
+  until (i >= count) or ((idA = self[i].IDModuleA) and
+    (idB = self[i].IDModuleB));
+
+  if (i < count) then
+    // begin
+    self[i].Occurence := self[i].Occurence + 1;
+  // Form1.AddLog(self[i].ToString(Modules));
+  // end;
+end;
+
+procedure TLiaisonsList.SortDescend;
+begin
+  sort(tcomparer<TLiaison>.Construct(
+    function(const a, b: TLiaison): integer
+    begin
+      if a.Occurence < b.Occurence then
+        result := 1
+      else if a.Occurence > b.Occurence then
+        result := -1
+      else
+        result := 0;
+    end));
+end;
+
 function TLiaisonsList.ToString(Modules: TModulesList): string;
 var
   i: integer;
@@ -559,6 +695,13 @@ begin
   inherited Create;
   IDModuleA := AIDModuleA;
   IDModuleB := AIDModuleB;
+  Occurence := 0;
+end;
+
+function TLiaison.ToString(Modules: TModulesList): string;
+begin
+  result := Modules[IDModuleA].ModuleName + ' - ' + Modules[IDModuleB]
+    .ModuleName + ' = ' + Occurence.ToString;
 end;
 
 initialization
