@@ -11,6 +11,9 @@ unit Unit1;
 // Dans mon cas j'ai le chemin parcourru, mais ce n'est pas nécessaire pour
 // résoudre l'exercice 1 donc on part sur une file d'attente de cases parcourues
 // dans un sens et avec un nombre courant de pas pour l'atteindre.
+//
+// 2 Solutons disponibles, à la main sous forme de liste chainée ou via TObjectList
+{$DEFINE MyPriorityQueueBis }
 
 interface
 
@@ -31,8 +34,13 @@ uses
 Const
   CDataFile = '..\..\input.txt';
   // CDataFile = '..\..\input-test.txt';
+  // CDataFile = '..\..\input-test2.txt';
+
   CNbPasMiniEx1 = 1; // minimum 1 case avant de regarder à gauche et à droite
   CNbPasMaxiEx1 = 3; // maximum 3 cases de déplacement
+
+  CNbPasMiniEx2 = 4; // minimum 4 case avant de regarder à gauche et à droite
+  CNbPasMaxiEx2 = 10; // maximum 10 cases de déplacement
 
 const
   CPoidsMax = maxint - 10;
@@ -60,9 +68,50 @@ type
     function Pop: TElem;
   end;
 
-  TCellsVisited = class(TObjectList<TElem>)
+  TMyPriorityQueueBis = class
+  private type
+    TItem = class
+    public
+      Prior, Next: TItem;
+      Value: TElem;
+      constructor Create;
+    end;
+
+  var
+    FCount: int64;
+
+  protected
+    First, Last: TItem;
+  public
+    property Count: int64 read FCount;
+    procedure Push(Elem: TElem);
+    function Pop: TElem;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+{$IFDEF MyPriorityQueueBis}
+
+type
+  TPriorityQueue = TMyPriorityQueueBis;
+{$ELSE}
+
+type
+  TPriorityQueue = TMyPriorityQueue;
+{$ENDIF}
+
+  // TCellsVisited = class(TObjectList<TElem>)
+  // function hasVisitedElem(AX, AY: int64; ADirection: TDirection;
+  // ANbPasCourant: int64): boolean;
+  // end;
+  TCellsVisited = class(TDictionary<int64, boolean>)
+  public
+    function GetKey(AX, AY: int64; ADirection: TDirection; ANbPasCourant: int64)
+      : int64; inline;
     function hasVisitedElem(AX, AY: int64; ADirection: TDirection;
       ANbPasCourant: int64): boolean;
+    procedure Ajoute(AX, AY: int64; ADirection: TDirection;
+      ANbPasCourant: int64);
   end;
 
   TCell = record
@@ -248,7 +297,7 @@ end;
 
 function TForm1.Exercice1: int64;
 
-  procedure VaVersLaGauche(Elem: TElem; Queue: TMyPriorityQueue);
+  procedure VaVersLaGauche(Elem: TElem; Queue: TPriorityQueue);
   var
     newx, newy: int64;
     newdirection: TDirection;
@@ -288,7 +337,7 @@ function TForm1.Exercice1: int64;
     Queue.Push(TElem.Create(newx, newy, Elem.HeatLoss + Map[newx,
       newy].HeatLoss, newdirection, 1));
   end;
-  procedure VaVersLaDroite(Elem: TElem; Queue: TMyPriorityQueue);
+  procedure VaVersLaDroite(Elem: TElem; Queue: TPriorityQueue);
   var
     newx, newy: int64;
     newdirection: TDirection;
@@ -328,7 +377,7 @@ function TForm1.Exercice1: int64;
     Queue.Push(TElem.Create(newx, newy, Elem.HeatLoss + Map[newx,
       newy].HeatLoss, newdirection, 1));
   end;
-  procedure VaDevant(Elem: TElem; Queue: TMyPriorityQueue);
+  procedure VaDevant(Elem: TElem; Queue: TPriorityQueue);
   var
     newx, newy: int64;
   begin
@@ -368,11 +417,16 @@ var
   Col, Lig: int64;
   Lignes: TArray<string>;
   Visited: TCellsVisited;
-  Queue: TMyPriorityQueue;
-  X, Y, nbPas: int64;
+  Queue: TPriorityQueue;
+  // X, Y, nbPas: int64;
   EndX, EndY: int64;
   Elem: TElem;
 begin
+{$IFDEF MyPriorityQueueBis}
+  AddLog('With TMyPriorityQueueBis (instances chain)');
+{$ELSE}
+  AddLog('With TMyPriorityQueue (TObjectList)');
+{$ENDIF}
   Lignes := tfile.ReadAllLines(CDataFile);
 
   // Dimensionne la grille
@@ -400,13 +454,14 @@ begin
   end;
 {$ENDREGION}
 {$REGION 'solution inspirée de @NineBerry (sur Twitch) : https://dotnetfiddle.net/9DN6g5'}
-  // implémentation de path finding selon l'algorithme de Dijskra
+  // implémentation de path finding selon l'algorithme de Dijkstra
+  // https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
   // en tenant compte du nombre de pas possibles dans une direction avant de
   // devoir en changer
   Result := -1;
   Visited := TCellsVisited.Create;
   try
-    Queue := TMyPriorityQueue.Create;
+    Queue := TPriorityQueue.Create;
     try
       // On empile les mouvements possibles depuis la case de départ
       Queue.Push(TElem.Create(0, 0, 0, TDirection.haut, 0));
@@ -420,6 +475,8 @@ begin
       while (Queue.Count > 0) do
       begin
         Elem := Queue.Pop;
+        if not assigned(Elem) then
+          raise exception.Create('Elem is nil. It should never happen');
 
         // if (Elem.X = EndX) and (Elem.Y = EndY) and (elem.NbPasCourants>=CNbPasMiniEx1) and (elem.NbPasCourants<=CNbPasMaxiEx1) then
         if (Elem.X = EndX) and (Elem.Y = EndY) then
@@ -436,7 +493,8 @@ begin
           continue;
         end;
 
-        Visited.Add(Elem);
+        // Visited.Add(Elem);
+        Visited.Ajoute(Elem.X, Elem.Y, Elem.Direction, Elem.NbPasCourants);
 
         if (Elem.NbPasCourants >= CNbPasMiniEx1) then
         // on ne peut tourner qu'après X pas minimum
@@ -448,6 +506,8 @@ begin
         if Elem.NbPasCourants < CNbPasMaxiEx1 then
           // on ne peut pas avancer plus de X pas dans la même direction
           VaDevant(Elem, Queue);
+
+        Elem.free;
       end;
     finally
       Queue.free;
@@ -460,16 +520,217 @@ begin
 end;
 
 function TForm1.Exercice2: int64;
-var
-  Lig: int64;
-  Lignes: TArray<string>;
-begin
-  Lignes := tfile.ReadAllLines(CDataFile);
-  Result := 0;
-  for Lig := 0 to length(Lignes) - 1 do
+
+  procedure VaVersLaGauche(Elem: TElem; Queue: TPriorityQueue);
+  var
+    newx, newy: int64;
+    newdirection: TDirection;
   begin
-    // TODO : à compléter
+    case Elem.Direction of
+      TDirection.haut:
+        begin
+          newdirection := TDirection.gauche;
+          newx := Elem.X - 1;
+          newy := Elem.Y;
+        end;
+      TDirection.droite:
+        begin
+          newdirection := TDirection.haut;
+          newx := Elem.X;
+          newy := Elem.Y - 1;
+        end;
+      TDirection.bas:
+        begin
+          newdirection := TDirection.droite;
+          newx := Elem.X + 1;
+          newy := Elem.Y;
+        end;
+      TDirection.gauche:
+        begin
+          newdirection := TDirection.bas;
+          newx := Elem.X;
+          newy := Elem.Y + 1;
+        end;
+    end;
+
+    // Dans la grille ?
+    if (newx < 0) or (newy < 0) or (newx >= length(Map)) or
+      (newy >= length(Map[0])) then
+      exit;
+
+    Queue.Push(TElem.Create(newx, newy, Elem.HeatLoss + Map[newx,
+      newy].HeatLoss, newdirection, 1));
   end;
+  procedure VaVersLaDroite(Elem: TElem; Queue: TPriorityQueue);
+  var
+    newx, newy: int64;
+    newdirection: TDirection;
+  begin
+    case Elem.Direction of
+      TDirection.haut:
+        begin
+          newdirection := TDirection.droite;
+          newx := Elem.X + 1;
+          newy := Elem.Y;
+        end;
+      TDirection.droite:
+        begin
+          newdirection := TDirection.bas;
+          newx := Elem.X;
+          newy := Elem.Y + 1;
+        end;
+      TDirection.bas:
+        begin
+          newdirection := TDirection.gauche;
+          newx := Elem.X - 1;
+          newy := Elem.Y;
+        end;
+      TDirection.gauche:
+        begin
+          newdirection := TDirection.haut;
+          newx := Elem.X;
+          newy := Elem.Y - 1;
+        end;
+    end;
+
+    // Dans la grille ?
+    if (newx < 0) or (newy < 0) or (newx >= length(Map)) or
+      (newy >= length(Map[0])) then
+      exit;
+
+    Queue.Push(TElem.Create(newx, newy, Elem.HeatLoss + Map[newx,
+      newy].HeatLoss, newdirection, 1));
+  end;
+  procedure VaDevant(Elem: TElem; Queue: TPriorityQueue);
+  var
+    newx, newy: int64;
+  begin
+    case Elem.Direction of
+      TDirection.haut:
+        begin
+          newx := Elem.X;
+          newy := Elem.Y - 1;
+        end;
+      TDirection.droite:
+        begin
+          newx := Elem.X + 1;
+          newy := Elem.Y;
+        end;
+      TDirection.bas:
+        begin
+          newx := Elem.X;
+          newy := Elem.Y + 1;
+        end;
+      TDirection.gauche:
+        begin
+          newx := Elem.X - 1;
+          newy := Elem.Y;
+        end;
+    end;
+
+    // Dans la grille ?
+    if (newx < 0) or (newy < 0) or (newx >= length(Map)) or
+      (newy >= length(Map[0])) then
+      exit;
+
+    Queue.Push(TElem.Create(newx, newy, Elem.HeatLoss + Map[newx,
+      newy].HeatLoss, Elem.Direction, Elem.NbPasCourants + 1));
+  end;
+
+var
+  Col, Lig: int64;
+  Lignes: TArray<string>;
+  Visited: TCellsVisited;
+  Queue: TPriorityQueue;
+  EndX, EndY: int64;
+  Elem: TElem;
+begin
+{$IFDEF MyPriorityQueueBis}
+  AddLog('With TMyPriorityQueueBis (instances chain)');
+{$ELSE}
+  AddLog('With TMyPriorityQueue (TObjectList)');
+{$ENDIF}
+  Lignes := tfile.ReadAllLines(CDataFile);
+
+  // Dimensionne la grille
+  setlength(Map, length(Lignes[0]));
+  for Col := 0 to length(Lignes[0]) - 1 do
+    setlength(Map[Col], length(Lignes));
+
+  // Remplit la grille
+  for Lig := 0 to length(Lignes) - 1 do
+    for Col := 0 to length(Lignes[Lig]) - 1 do
+    begin
+      Map[Col][Lig].HeatLoss := strtoint(Lignes[Lig].chars[Col]);
+      Map[Col][Lig].PathFindingDejaPasse := false;
+    end;
+  // DrawMap;
+
+{$REGION 'solution inspirée de @NineBerry (sur Twitch) : https://dotnetfiddle.net/9DN6g5'}
+  // implémentation de path finding selon l'algorithme de Dijkstra
+  // https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
+  // en tenant compte du nombre de pas possibles dans une direction avant de
+  // devoir en changer
+  Result := -1;
+  Visited := TCellsVisited.Create;
+  try
+    Queue := TPriorityQueue.Create;
+    try
+      // On empile les mouvements possibles depuis la case de départ
+      Queue.Push(TElem.Create(0, 0, 0, TDirection.haut, 0));
+      Queue.Push(TElem.Create(0, 0, 0, TDirection.droite, 0));
+      Queue.Push(TElem.Create(0, 0, 0, TDirection.bas, 0));
+      Queue.Push(TElem.Create(0, 0, 0, TDirection.gauche, 0));
+
+      EndX := length(Map) - 1;
+      EndY := length(Map[0]) - 1;
+
+      while (Queue.Count > 0) do
+      begin
+        Elem := Queue.Pop;
+        if not assigned(Elem) then
+          raise exception.Create('Elem is nil. It should never happen');
+
+        if (Elem.X = EndX) and (Elem.Y = EndY) and
+          (Elem.NbPasCourants >= CNbPasMiniEx2) and
+          (Elem.NbPasCourants <= CNbPasMaxiEx2) then
+        begin
+          Result := Elem.HeatLoss;
+          Elem.free;
+          break;
+        end;
+
+        if Visited.hasVisitedElem(Elem.X, Elem.Y, Elem.Direction,
+          Elem.NbPasCourants) then
+        begin
+          Elem.free;
+          continue;
+        end;
+
+        // Visited.Add(Elem);
+        Visited.Ajoute(Elem.X, Elem.Y, Elem.Direction, Elem.NbPasCourants);
+
+        if (Elem.NbPasCourants >= CNbPasMiniEx2) then
+        // on ne peut tourner qu'après X pas minimum
+        begin
+          VaVersLaGauche(Elem, Queue);
+          VaVersLaDroite(Elem, Queue);
+        end;
+
+        if Elem.NbPasCourants < CNbPasMaxiEx2 then
+          // on ne peut pas avancer plus de X pas dans la même direction
+          VaDevant(Elem, Queue);
+
+        Elem.free;
+      end;
+    finally
+      Queue.free;
+    end;
+  finally
+    Visited.free;
+  end;
+
+{$ENDREGION}
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -646,17 +907,32 @@ end;
 
 { TCellsVisited }
 
+procedure TCellsVisited.Ajoute(AX, AY: int64; ADirection: TDirection;
+ANbPasCourant: int64);
+begin
+  Add(GetKey(AX, AY, ADirection, ANbPasCourant), true);
+end;
+
+function TCellsVisited.GetKey(AX, AY: int64; ADirection: TDirection;
+ANbPasCourant: int64): int64;
+begin
+  Result := AX + AY * length(Form1.Map) + (ord(ADirection) + 1) *
+    length(Form1.Map) * length(Form1.Map[0]) + ANbPasCourant * length(Form1.Map)
+    * length(Form1.Map[0]) * 4;
+end;
+
 function TCellsVisited.hasVisitedElem(AX, AY: int64; ADirection: TDirection;
 ANbPasCourant: int64): boolean;
 begin
-  Result := false;
-  for var Elem in self do
-    if (Elem.X = AX) and (Elem.Y = AY) and (Elem.Direction = ADirection) and
-      (Elem.NbPasCourants = ANbPasCourant) then
-    begin
-      Result := true;
-      break;
-    end;
+  // Result := false;
+  // for var Elem in self do
+  // if (Elem.X = AX) and (Elem.Y = AY) and (Elem.Direction = ADirection) and
+  // (Elem.NbPasCourants = ANbPasCourant) then
+  // begin
+  // Result := true;
+  // break;
+  // end;
+  Result := containskey(GetKey(AX, AY, ADirection, ANbPasCourant));
 end;
 
 { TMyPriorityQueue }
@@ -667,18 +943,134 @@ begin
 end;
 
 procedure TMyPriorityQueue.Push(Elem: TElem);
+var
+  idx: integer;
+  Added: boolean;
 begin
-  Add(Elem);
-  sort(TComparer<TElem>.construct(
-    function(const a, b: TElem): integer
+  // Add(Elem);
+  // sort(TComparer<TElem>.construct(
+  // function(const a, b: TElem): integer
+  // begin
+  // if a.HeatLoss < b.HeatLoss then
+  // Result := -1
+  // else if a.HeatLoss > b.HeatLoss then
+  // Result := 1
+  // else
+  // Result := 0;
+  // end));
+
+  Added := false;
+  for idx := 0 to Count - 1 do
+    if (self[idx].HeatLoss > Elem.HeatLoss) then
     begin
-      if a.HeatLoss < b.HeatLoss then
-        Result := -1
-      else if a.HeatLoss > b.HeatLoss then
-        Result := 1
-      else
-        Result := 0;
-    end));
+      insert(idx, Elem);
+      Added := true;
+      break;
+    end;
+
+  if not Added then
+    Add(Elem);
+end;
+
+{ TMyPriorityQueueBis }
+
+constructor TMyPriorityQueueBis.Create;
+begin
+  inherited Create;
+  First := nil;
+  Last := nil;
+  FCount := 0;
+end;
+
+destructor TMyPriorityQueueBis.Destroy;
+begin
+  while (FCount > 0) do
+    Pop.free;
+  inherited;
+end;
+
+function TMyPriorityQueueBis.Pop: TElem;
+var
+  FirstItem: TItem;
+begin
+  if assigned(First) then
+  begin
+    FCount := FCount - 1;
+    FirstItem := First;
+    if Last = First then
+    begin
+      assert(FCount = 0, 'Items lost in the TMyPriorityQueueBis : ' +
+        FCount.tostring);
+      First := nil;
+      Last := nil;
+      FCount := 0;
+    end
+    else
+    begin
+      First := FirstItem.Next;
+      First.Prior := nil;
+    end;
+    Result := FirstItem.Value;
+    FirstItem.free;
+  end
+  else
+    Result := nil;
+end;
+
+procedure TMyPriorityQueueBis.Push(Elem: TElem);
+var
+  NewItem: TItem;
+  Item: TItem;
+begin
+  if not assigned(Elem) then
+    exit;
+
+  FCount := FCount + 1;
+
+  NewItem := TItem.Create;
+  NewItem.Value := Elem;
+
+  Item := First;
+  // while assigned(Item) and (Item.Value.HeatLoss <= NewItem.Value.HeatLoss) do
+  while assigned(Item) and (Item.Value.HeatLoss < NewItem.Value.HeatLoss) do
+    Item := Item.Next;
+
+  if assigned(Item) then
+  begin
+    if (Item = First) then
+      First := NewItem;
+    NewItem.Prior := Item.Prior;
+    if assigned(NewItem.Prior) then
+      NewItem.Prior.Next := NewItem;
+    Item.Prior := NewItem;
+    NewItem.Next := Item;
+    // Form1.AddLog('ajout newitem ' + NewItem.Tag.tostring + ' devant item ' +
+    // Item.Tag.tostring + ' / ' + FCount.tostring + ' / ' +
+    // NewItem.Value.HeatLoss.tostring + '/' + Item.Value.HeatLoss.tostring);
+  end
+  else
+  begin
+    if not assigned(First) then
+      First := NewItem;
+    if assigned(Last) then
+    begin
+      Last.Next := NewItem;
+      NewItem.Prior := Last;
+    end;
+    Last := NewItem;
+    // Form1.AddLog('ajout newitem ' + NewItem.Tag.tostring + ' en dernier / ' +
+    // FCount.tostring + ' / ' + NewItem.Value.HeatLoss.tostring);
+  end;
+end;
+
+{ TMyPriorityQueueBis.TItem }
+
+constructor TMyPriorityQueueBis.TItem.Create;
+begin
+  inherited Create;
+  Prior := nil;
+  Next := nil;
+  Value := nil;
 end;
 
 initialization
